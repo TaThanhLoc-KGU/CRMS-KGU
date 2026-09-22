@@ -1,0 +1,11 @@
+# Local environment files (see deploy/.env.example)
+deploy/.env
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
+
+# Claude Code session-local files
+.claude/settings.local.json
+.claude/scheduled_tasks.lock

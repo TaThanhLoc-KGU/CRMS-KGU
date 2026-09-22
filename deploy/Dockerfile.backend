@@ -1,0 +1,17 @@
+# Build context: repo root (see deploy/docker-compose.yml)
+
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /build
+COPY backend/pom.xml .
+RUN mvn -q -B dependency:go-offline
+COPY backend/src ./src
+RUN mvn -q -B package -DskipTests
+
+FROM eclipse-temurin:21-jre-alpine
+RUN addgroup -S crms && adduser -S crms -G crms
+WORKDIR /app
+COPY --from=build /build/target/*.jar app.jar
+RUN mkdir -p /data/storage && chown -R crms:crms /data/storage
+USER crms
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
