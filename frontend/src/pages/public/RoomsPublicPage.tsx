@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Col, Empty, InputNumber, Row, Space, Tag, Typography, Input } from "antd";
-import { HomeOutlined } from "@ant-design/icons";
+import { Col, Empty, InputNumber, Row, Space, Typography, Input } from "antd";
 import { useNavigate } from "react-router-dom";
 import { listPublicRooms } from "../../api/rooms";
+import RoomPlaqueCard from "../../components/RoomPlaqueCard";
 
 export default function RoomsPublicPage() {
   const navigate = useNavigate();
@@ -23,9 +23,12 @@ export default function RoomsPublicPage() {
   });
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
-      <Typography.Title level={3}>Danh sách phòng</Typography.Title>
-      <Space wrap style={{ marginBottom: 24 }}>
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 24px 72px" }}>
+      <div className="crms-eyebrow" style={{ marginBottom: 10 }}>Trung tâm Hội nghị</div>
+      <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 24 }}>
+        Danh sách phòng
+      </Typography.Title>
+      <Space wrap style={{ marginBottom: 28 }}>
         <Input.Search
           placeholder="Tìm theo tên phòng"
           allowClear
@@ -43,42 +46,10 @@ export default function RoomsPublicPage() {
 
       {!isLoading && data?.content.length === 0 && <Empty description="Không tìm thấy phòng phù hợp" />}
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[20, 20]}>
         {data?.content.map((room) => (
           <Col xs={24} sm={12} md={8} key={room.id}>
-            <Card
-              hoverable
-              onClick={() => navigate(`/rooms/${room.id}`)}
-              cover={
-                room.thumbnailUrl ? (
-                  <img alt={room.name} src={room.thumbnailUrl} style={{ height: 160, objectFit: "cover" }} />
-                ) : (
-                  <div
-                    style={{
-                      height: 160,
-                      background: "#f0f2f5",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <HomeOutlined style={{ fontSize: 32, color: "#bbb" }} />
-                  </div>
-                )
-              }
-            >
-              <Card.Meta
-                title={`${room.code} — ${room.name}`}
-                description={
-                  <Space direction="vertical" size={4}>
-                    <span>
-                      {room.building} {room.floor ? `— Tầng ${room.floor}` : ""}
-                    </span>
-                    {room.capacity && <Tag color="blue">Sức chứa {room.capacity} người</Tag>}
-                  </Space>
-                }
-              />
-            </Card>
+            <RoomPlaqueCard room={room} onClick={() => navigate(`/rooms/${room.id}`)} />
           </Col>
         ))}
       </Row>

@@ -96,10 +96,15 @@ crms-kgu/
 │                                  # V5__p3_qr_checkin_waitlist_recurrence
 ├── frontend/
 │   └── src/
+│       ├── theme.ts               # AntD ThemeConfig — hex phải khớp tay với index.css (xem dưới)
+│       ├── index.css              # Design tokens (CSS custom properties) + font-face + .crms-* utility
+│       │                          # classes (plaque/seal/eyebrow) — đọc header comment trong file trước
+│       │                          # khi đổi màu/font, giải thích vì sao chọn "bảng tên phòng / con dấu"
 │       ├── api/                  # 1 file/domain: rooms, assets, bookings, config, catalog, users,
 │       │                          # emailTemplates, handover, reports, audit, waitlist
 │       ├── layouts/              # AdminLayout (sau đăng nhập) và PublicLayout (trang công khai) — tách biệt
-│       ├── components/           # HandoverSection.tsx (nhúng vào BookingDetailPage), RequireRole, v.v.
+│       ├── components/           # HandoverSection.tsx (nhúng vào BookingDetailPage), RoomPlaqueCard.tsx
+│       │                          # (thẻ phòng dùng chung 3 trang public), RequireRole, v.v.
 │       └── pages/{public,admin}  # public/ = không cần đăng nhập, admin/ = sau RequireAuth
 └── deploy/
     ├── docker-compose.yml       # postgres, gotenberg, backend, frontend(nginx)
@@ -341,6 +346,37 @@ cp .env.example .env   # trỏ VITE_API_BASE_URL về backend đang chạy
 npm install
 npm run dev
 ```
+
+## Giao diện (design system)
+
+Frontend ban đầu (P0-P3) dùng nguyên màu/font mặc định của AntD — người dùng phản hồi
+là "quá đơn giản". Đã thay bằng một hệ nhận diện riêng, đặt tên "**Bảng tên phòng / con
+dấu**" — lấy chất liệu thật từ chính bối cảnh: bảng tên bằng đồng trên cửa phòng họp,
+con dấu mực đỏ đóng lên văn bản đã duyệt, phòng Khánh tiết trang trọng.
+
+- **Token màu/font**: định nghĩa MỘT LẦN ở `frontend/src/index.css` (CSS custom
+  properties: `--ink-*` navy, `--paddy-*` xanh lá ruộng — màu hành động chính,
+  `--brass-*` màu đồng — điểm nhấn nghi lễ, `--lacquer-*` đỏ son — con dấu/cảnh báo,
+  `--paper-*` nền giấy ấm) và lặp lại bằng tay ở `frontend/src/theme.ts` (AntD
+  `ThemeConfig`, không đọc được CSS var). **Đổi màu ở một chỗ mà quên chỗ kia sẽ lệch
+  theme** — luôn sửa cả hai file cùng lúc.
+- **Font**: Fraunces (tiêu đề, serif có nét trang trọng/khắc chữ) + Be Vietnam Pro (chữ
+  thường — font do người Việt thiết kế, đủ dấu tiếng Việt) + JetBrains Mono (mã đơn/mã
+  phòng). Nạp qua Google Fonts `<link>` trong `index.html`, không tự host.
+- **`.crms-plaque`** (index.css): thẻ phòng dạng bảng tên khắc, dùng qua component dùng
+  chung `RoomPlaqueCard.tsx` ở cả 3 trang public (Landing, RoomsPublicPage,
+  RoomDetailPublicPage) — sửa 1 nơi, khỏi lặp code.
+- **`.crms-seal`**: con dấu tròn, xoay nghiêng, đóng vào góc trang chi tiết đơn khi đơn
+  đã **APPROVED** (và mọi trạng thái kế thừa: SLIP_ISSUED/IN_USE/RETURNED/CLOSED) hoặc
+  **REJECTED** — đây là điểm nhấn "wow" duy nhất được đầu tư kỹ, các phần còn lại của
+  giao diện cố tình giữ tiết chế xung quanh nó (nguyên tắc "spend your boldness in one
+  place"). Class `crms-seal-enter` chỉ gắn thêm đúng một lần, ngay sau khi
+  `approveMutation`/`rejectMutation` thành công trong CÙNG phiên thao tác (state
+  `justStamped` ở `BookingDetailPage.tsx`) — tải lại trang một đơn đã duyệt từ trước chỉ
+  hiện con dấu tĩnh, không animate lại, để cảm giác "vừa đóng dấu" không bị lặp lại giả
+  tạo mỗi lần xem lại đơn cũ.
+- Tôn trọng `prefers-reduced-motion: reduce` (tắt hết animation/transition) — xem cuối
+  `index.css`.
 
 ## Việc chưa làm (cố ý — cần hạ tầng ngoài không có ở môi trường dev)
 

@@ -62,7 +62,7 @@ export default function CalendarAdminPage() {
           options={roomsPage?.content.map((r) => ({ value: r.id, label: r.name }))}
         />
       </Space>
-      <div style={{ background: "#fff", padding: 16, borderRadius: 8 }}>
+      <div style={{ background: "var(--paper-0)", padding: 16, borderRadius: 8 }}>
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin]}
           initialView="timeGridWeek"

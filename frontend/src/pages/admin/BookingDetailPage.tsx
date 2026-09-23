@@ -45,6 +45,7 @@ const STATUS_LABEL: Record<BookingStatus, { text: string; color: string }> = {
 
 const DECIDABLE: BookingStatus[] = ["SUBMITTED", "UNDER_REVIEW"];
 const CANCELLABLE: BookingStatus[] = ["SUBMITTED", "UNDER_REVIEW", "APPROVED"];
+const APPROVED_LINEAGE: BookingStatus[] = ["APPROVED", "SLIP_ISSUED", "IN_USE", "RETURNED", "CLOSED"];
 
 export default function BookingDetailPage() {
   const { bookingId } = useParams<{ bookingId: string }>();
@@ -58,6 +59,7 @@ export default function BookingDetailPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [justStamped, setJustStamped] = useState<"APPROVED" | "REJECTED" | null>(null);
 
   const { data: booking, isLoading } = useQuery({ queryKey: ["booking", id], queryFn: () => getBooking(id) });
   const {
@@ -77,8 +79,11 @@ export default function BookingDetailPage() {
 
   const approveMutation = useMutation({
     mutationFn: () => approveBooking(id),
-    onSuccess: () => {
+    onSuccess: (updated) => {
       message.success("Đã duyệt đơn");
+      if (updated.status === "APPROVED") {
+        setJustStamped("APPROVED");
+      }
       invalidate();
     },
     onError: (err) => message.error(extractErrorMessage(err)),
@@ -90,6 +95,7 @@ export default function BookingDetailPage() {
       message.success("Đã từ chối đơn");
       setRejectModalOpen(false);
       setRejectReason("");
+      setJustStamped("REJECTED");
       invalidate();
     },
     onError: (err) => message.error(extractErrorMessage(err)),
@@ -142,12 +148,23 @@ export default function BookingDetailPage() {
       />
 
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+          {(APPROVED_LINEAGE.includes(booking.status) || booking.status === "REJECTED") && (
+            <div
+              className={`crms-seal ${booking.status === "REJECTED" ? "crms-seal--rejected" : ""} ${
+                justStamped ? "crms-seal-enter" : ""
+              }`}
+              style={{ position: "absolute", top: -10, right: 4, zIndex: 1 }}
+            >
+              {booking.status === "REJECTED" ? "Từ chối" : "Đã duyệt"}
+            </div>
+          )}
+
           <Typography.Title level={4}>
             {booking.code} <Tag color={status.color}>{status.text}</Tag>
           </Typography.Title>
 
-          <Descriptions bordered column={2} size="small" style={{ background: "#fff", marginBottom: 16 }}>
+          <Descriptions bordered column={2} size="small" style={{ background: "var(--paper-0)", marginBottom: 16 }}>
             <Descriptions.Item label="Đơn vị">{booking.requesterUnit}</Descriptions.Item>
             <Descriptions.Item label="Người liên hệ">{booking.contactName}</Descriptions.Item>
             <Descriptions.Item label="Email">{booking.contactEmail}</Descriptions.Item>
@@ -190,7 +207,7 @@ export default function BookingDetailPage() {
             bordered
             dataSource={booking.attachments}
             locale={{ emptyText: "Không có văn bản đính kèm" }}
-            style={{ marginBottom: 16, background: "#fff" }}
+            style={{ marginBottom: 16, background: "var(--paper-0)" }}
             renderItem={(attachment) => (
               <List.Item
                 actions={[
@@ -221,7 +238,7 @@ export default function BookingDetailPage() {
                 size="small"
                 bordered
                 dataSource={booking.approvals}
-                style={{ background: "#fff", marginBottom: 16 }}
+                style={{ background: "var(--paper-0)", marginBottom: 16 }}
                 renderItem={(a) => (
                   <List.Item>
                     <Tag color={a.decision === "APPROVED" ? "green" : "red"}>

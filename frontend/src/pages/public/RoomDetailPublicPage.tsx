@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, Descriptions, Image, Skeleton, Space, Tag, Typography } from "antd";
+import { Button, Descriptions, Image, Skeleton, Space, Typography } from "antd";
 import { getPublicRoom } from "../../api/rooms";
 
 export default function RoomDetailPublicPage() {
@@ -18,24 +18,48 @@ export default function RoomDetailPublicPage() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px" }}>
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px 72px" }}>
       {room.images.length > 0 ? (
         <Image.PreviewGroup>
-          <Space wrap style={{ marginBottom: 24 }}>
+          <Space wrap style={{ marginBottom: 28 }}>
             {room.images.map((img) => (
-              <Image key={img.id} src={img.url} alt={img.caption ?? room.name} width={200} height={140} style={{ objectFit: "cover" }} />
+              <Image
+                key={img.id}
+                src={img.url}
+                alt={img.caption ?? room.name}
+                width={200}
+                height={140}
+                style={{ objectFit: "cover", borderRadius: 4 }}
+              />
             ))}
           </Space>
         </Image.PreviewGroup>
       ) : room.thumbnailUrl ? (
-        <img src={room.thumbnailUrl} alt={room.name} style={{ width: "100%", maxHeight: 320, objectFit: "cover", marginBottom: 24 }} />
-      ) : null}
+        <img
+          src={room.thumbnailUrl}
+          alt={room.name}
+          style={{ width: "100%", maxHeight: 320, objectFit: "cover", marginBottom: 28, borderRadius: 4 }}
+        />
+      ) : (
+        <div
+          className="crms-plaque-media"
+          style={{ height: 200, borderRadius: 4, marginBottom: 28 }}
+        >
+          <span className="crms-plaque-glyph">{room.code}</span>
+        </div>
+      )}
 
-      <Typography.Title level={3}>
-        {room.name} <Tag>{room.code}</Tag>
+      <div className="crms-eyebrow" style={{ marginBottom: 8 }}>{room.code}</div>
+      <Typography.Title level={2} style={{ marginTop: 0, marginBottom: 24 }}>
+        {room.name}
       </Typography.Title>
 
-      <Descriptions bordered column={2} style={{ marginBottom: 24, background: "#fff" }}>
+      <Descriptions
+        bordered
+        column={2}
+        style={{ marginBottom: 28, background: "var(--paper-0)" }}
+        labelStyle={{ background: "var(--brass-100)", color: "var(--ink-800)", fontWeight: 600 }}
+      >
         <Descriptions.Item label="Tòa nhà">{room.building ?? "-"}</Descriptions.Item>
         <Descriptions.Item label="Tầng">{room.floor ?? "-"}</Descriptions.Item>
         <Descriptions.Item label="Sức chứa">{room.capacity ?? "-"} người</Descriptions.Item>

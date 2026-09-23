@@ -49,7 +49,7 @@ export default function CalendarPublicPage() {
         <Tag color="orange">Chờ duyệt</Tag>
       </Space>
 
-      <div style={{ background: "#fff", padding: 16, borderRadius: 8 }}>
+      <div style={{ background: "var(--paper-0)", padding: 16, borderRadius: 8 }}>
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin]}
           initialView="dayGridMonth"

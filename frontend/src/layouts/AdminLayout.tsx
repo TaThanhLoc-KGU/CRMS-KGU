@@ -45,16 +45,38 @@ export default function AdminLayout() {
         <div
           style={{
             height: 48,
-            margin: 16,
-            color: "#fff",
-            fontWeight: 600,
-            fontSize: 16,
+            margin: "20px 16px 12px",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
             whiteSpace: "nowrap",
             overflow: "hidden",
           }}
         >
-          CRMS-KGU
+          <span
+            aria-hidden
+            style={{
+              width: 28,
+              height: 28,
+              flexShrink: 0,
+              borderRadius: "50%",
+              border: "1.5px solid var(--brass-500)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontFamily: "var(--font-display)",
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--brass-300)",
+            }}
+          >
+            KGU
+          </span>
+          <span style={{ color: "#fbf9f4", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 17 }}>
+            CRMS-KGU
+          </span>
         </div>
+        <div style={{ margin: "0 16px 16px", height: 1, background: "rgba(216,185,121,0.25)" }} />
         <Menu
           theme="dark"
           mode="inline"
@@ -70,7 +92,8 @@ export default function AdminLayout() {
       <Layout>
         <Header
           style={{
-            background: "#fff",
+            background: "var(--paper-0)",
+            borderBottom: "1px solid var(--paper-line)",
             display: "flex",
             alignItems: "center",
             justifyContent: "flex-end",
