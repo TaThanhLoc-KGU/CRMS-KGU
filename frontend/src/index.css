@@ -216,6 +216,14 @@ code,
   }
 }
 
+@media (max-width: 900px) {
+  .crms-hero-grid {
+    grid-template-columns: 1fr !important;
+    padding-top: 64px !important;
+    padding-bottom: 64px !important;
+  }
+}
+
 /* Respect the OS-level reduced-motion preference everywhere, not just the seal */
 @media (prefers-reduced-motion: reduce) {
   * {
