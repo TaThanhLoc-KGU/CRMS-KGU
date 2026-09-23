@@ -349,32 +349,38 @@ npm run dev
 
 ## Giao diện (design system)
 
-Frontend ban đầu (P0-P3) dùng nguyên màu/font mặc định của AntD — người dùng phản hồi
-là "quá đơn giản". Đã thay bằng một hệ nhận diện riêng, đặt tên "**Bảng tên phòng / con
-dấu**" — lấy chất liệu thật từ chính bối cảnh: bảng tên bằng đồng trên cửa phòng họp,
-con dấu mực đỏ đóng lên văn bản đã duyệt, phòng Khánh tiết trang trọng.
+Frontend ban đầu (P0-P3) dùng nguyên màu/font mặc định của AntD — người dùng chê "quá
+đơn giản". Thử một hệ nhận diện ornate tên "Bảng tên phòng / con dấu" (navy + đồng +
+serif Fraunces + con dấu xoay nghiêng khi duyệt đơn) — người dùng chê tiếp là "lố lăng".
+**Bản hiện tại (mới nhất) đi theo hướng ngược lại: sạch, hiện đại, tối giản, kiểu
+Material** — nền trắng/xám nhạt, MỘT màu nhấn (xanh lá), không gradient/hoạ tiết/con
+dấu, một font sans duy nhất. Nếu định "làm đẹp thêm" lần nữa, đọc kỹ hai lần thất bại ở
+trên trước — đừng quay lại hướng ornate.
 
 - **Token màu/font**: định nghĩa MỘT LẦN ở `frontend/src/index.css` (CSS custom
-  properties: `--ink-*` navy, `--paddy-*` xanh lá ruộng — màu hành động chính,
-  `--brass-*` màu đồng — điểm nhấn nghi lễ, `--lacquer-*` đỏ son — con dấu/cảnh báo,
-  `--paper-*` nền giấy ấm) và lặp lại bằng tay ở `frontend/src/theme.ts` (AntD
-  `ThemeConfig`, không đọc được CSS var). **Đổi màu ở một chỗ mà quên chỗ kia sẽ lệch
-  theme** — luôn sửa cả hai file cùng lúc.
-- **Font**: Fraunces (tiêu đề, serif có nét trang trọng/khắc chữ) + Be Vietnam Pro (chữ
-  thường — font do người Việt thiết kế, đủ dấu tiếng Việt) + JetBrains Mono (mã đơn/mã
-  phòng). Nạp qua Google Fonts `<link>` trong `index.html`, không tự host.
-- **`.crms-plaque`** (index.css): thẻ phòng dạng bảng tên khắc, dùng qua component dùng
-  chung `RoomPlaqueCard.tsx` ở cả 3 trang public (Landing, RoomsPublicPage,
+  properties: `--ink-*` chữ đậm/tiêu đề — xám gần đen, không phải navy nữa; `--primary-*`
+  xanh lá — màu hành động chính, duy nhất; `--danger-*` đỏ lỗi/từ chối; `--surface`
+  trắng, `--bg` nền trang xám rất nhạt, `--border` viền xám nhạt) và lặp lại bằng tay ở
+  `frontend/src/theme.ts` (AntD `ThemeConfig`, không đọc được CSS var). **Đổi màu ở một
+  chỗ mà quên chỗ kia sẽ lệch theme** — luôn sửa cả hai file cùng lúc.
+- **Font**: chỉ Be Vietnam Pro (font người Việt thiết kế, đủ dấu tiếng Việt) cho toàn bộ
+  chữ — heading chỉ đậm hơn (weight 700), không dùng serif/italic nào nữa. JetBrains
+  Mono giữ lại riêng cho mã đơn/mã phòng (`.crms-mono`, `.crms-plaque-code`). Nạp qua
+  Google Fonts `<link>` trong `index.html`.
+- **`.crms-plaque`** (index.css): thẻ phòng phẳng, nền trắng, viền + bóng đổ nhẹ kiểu
+  Material elevation, KHÔNG còn khối nền tối + chữ khắc lớn — ảnh đại diện trống thì
+  hiện một icon đơn giản trên nền xanh nhạt. Dùng qua component dùng chung
+  `RoomPlaqueCard.tsx` ở cả 3 trang public (Landing, RoomsPublicPage,
   RoomDetailPublicPage) — sửa 1 nơi, khỏi lặp code.
-- **`.crms-seal`**: con dấu tròn, xoay nghiêng, đóng vào góc trang chi tiết đơn khi đơn
-  đã **APPROVED** (và mọi trạng thái kế thừa: SLIP_ISSUED/IN_USE/RETURNED/CLOSED) hoặc
-  **REJECTED** — đây là điểm nhấn "wow" duy nhất được đầu tư kỹ, các phần còn lại của
-  giao diện cố tình giữ tiết chế xung quanh nó (nguyên tắc "spend your boldness in one
-  place"). Class `crms-seal-enter` chỉ gắn thêm đúng một lần, ngay sau khi
-  `approveMutation`/`rejectMutation` thành công trong CÙNG phiên thao tác (state
-  `justStamped` ở `BookingDetailPage.tsx`) — tải lại trang một đơn đã duyệt từ trước chỉ
-  hiện con dấu tĩnh, không animate lại, để cảm giác "vừa đóng dấu" không bị lặp lại giả
-  tạo mỗi lần xem lại đơn cũ.
+- **`.crms-chip`**: badge nhỏ dạng viên thuốc (pill), thay hẳn cho con dấu xoay nghiêng
+  cũ — hiện cạnh tiêu đề trang chi tiết đơn khi đơn đã **APPROVED** (và mọi trạng thái kế
+  thừa: SLIP_ISSUED/IN_USE/RETURNED/CLOSED) hoặc **REJECTED**. Class `crms-chip-enter`
+  chỉ gắn thêm đúng một lần, ngay sau khi `approveMutation`/`rejectMutation` thành công
+  trong CÙNG phiên thao tác (state `justStamped` ở `BookingDetailPage.tsx`) — tải lại
+  trang một đơn đã duyệt từ trước chỉ hiện chip tĩnh, không animate lại.
+- **Trang signage (`/man-hinh`) vẫn nền tối** (`SignagePage.tsx`, màu hex viết thẳng,
+  không dùng token) — CỐ Ý khác biệt, vì đây là màn hình TV treo tường cần tương phản
+  cao nhìn từ xa, không phải một trang web thường; đừng "đồng bộ hoá" nó về nền trắng.
 - Tôn trọng `prefers-reduced-motion: reduce` (tắt hết animation/transition) — xem cuối
   `index.css`.
 

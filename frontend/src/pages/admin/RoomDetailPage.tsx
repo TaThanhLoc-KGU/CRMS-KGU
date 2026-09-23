@@ -108,7 +108,7 @@ export default function RoomDetailPage() {
           bordered
           size="small"
           column={2}
-          style={{ marginBottom: 24, background: "var(--paper-0)" }}
+          style={{ marginBottom: 24, background: "var(--surface)" }}
         >
           <Descriptions.Item label={t.rooms.building}>{room.building ?? "-"}</Descriptions.Item>
           <Descriptions.Item label={t.rooms.floor}>{room.floor ?? "-"}</Descriptions.Item>

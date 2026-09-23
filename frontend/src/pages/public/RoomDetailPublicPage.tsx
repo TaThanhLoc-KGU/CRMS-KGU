@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button, Descriptions, Image, Skeleton, Space, Typography } from "antd";
+import { BankOutlined } from "@ant-design/icons";
 import { getPublicRoom } from "../../api/rooms";
 
 export default function RoomDetailPublicPage() {
@@ -41,11 +42,8 @@ export default function RoomDetailPublicPage() {
           style={{ width: "100%", maxHeight: 320, objectFit: "cover", marginBottom: 28, borderRadius: 4 }}
         />
       ) : (
-        <div
-          className="crms-plaque-media"
-          style={{ height: 200, borderRadius: 4, marginBottom: 28 }}
-        >
-          <span className="crms-plaque-glyph">{room.code}</span>
+        <div className="crms-plaque-media" style={{ height: 200, borderRadius: "var(--radius-md)", marginBottom: 28 }}>
+          <BankOutlined style={{ fontSize: 40 }} />
         </div>
       )}
 
@@ -54,12 +52,7 @@ export default function RoomDetailPublicPage() {
         {room.name}
       </Typography.Title>
 
-      <Descriptions
-        bordered
-        column={2}
-        style={{ marginBottom: 28, background: "var(--paper-0)" }}
-        labelStyle={{ background: "var(--brass-100)", color: "var(--ink-800)", fontWeight: 600 }}
-      >
+      <Descriptions bordered column={2} style={{ marginBottom: 28, background: "var(--surface)" }}>
         <Descriptions.Item label="Tòa nhà">{room.building ?? "-"}</Descriptions.Item>
         <Descriptions.Item label="Tầng">{room.floor ?? "-"}</Descriptions.Item>
         <Descriptions.Item label="Sức chứa">{room.capacity ?? "-"} người</Descriptions.Item>

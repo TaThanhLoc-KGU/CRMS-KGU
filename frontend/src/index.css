@@ -1,59 +1,47 @@
 /* ==========================================================================
-   CRMS-KGU design system — "Bảng tên phòng" (room plaque / official seal)
-   Grounded in the real subject: a university conference center that runs on
-   formal Vietnamese administrative ritual — engraved room plaques on doors,
-   red ink chops (con dấu) stamped on approved paperwork, brass fixtures in a
-   Khánh tiết reception hall. See CLAUDE.md if this file moves.
+   CRMS-KGU design system — clean, modern, minimal (Material-influenced).
+   Light surfaces, one accent color, flat cards with soft elevation, a single
+   sans typeface. No dark hero, no decorative ornament, no stamps — see
+   CLAUDE.md "Giao diện" for the earlier ornate pass this replaced and why.
    ========================================================================== */
 
 :root {
-  /* Ink Navy — institutional, the color of a letterhead and a sidebar */
-  --ink-900: #0f1a30;
-  --ink-800: #14213d;
-  --ink-700: #1c2c4d;
-  --ink-500: #445071;
+  /* Neutral ink scale — text and headings, not a colored background anymore */
+  --ink-900: #14161a;
+  --ink-800: #1c1f26;
+  --ink-700: #2b2f38;
 
-  /* Paddy Green — Mekong Delta ricefields; primary action / "available" */
-  --paddy-700: #1f4d38;
-  --paddy-600: #2f6d4f;
-  --paddy-500: #3c8562;
-  --paddy-100: #e3efe7;
+  /* Primary accent — one color, used for actions and "available" states */
+  --primary-700: #0b7a52;
+  --primary-600: #0f9d6e;
+  --primary-500: #16b881;
+  --primary-100: #e3f6ee;
 
-  /* Brass — ceremonial accent, ties to Khánh tiết fixtures and plaque edges */
-  --brass-700: #8f6a1e;
-  --brass-500: #b8892a;
-  --brass-300: #d9b979;
-  --brass-100: #f3e8d1;
+  /* Danger — rejected / busy / errors */
+  --danger-700: #a32a1f;
+  --danger-600: #d33d2e;
+  --danger-100: #fbe6e3;
 
-  /* Lacquer Red — the ink of a chop/seal; danger, busy, "đã duyệt" stamp */
-  --lacquer-700: #7c2c24;
-  --lacquer-600: #a63d33;
-  --lacquer-500: #c14a3d;
-  --lacquer-100: #f6e2df;
+  /* Warning */
+  --warning-600: #b7791f;
+  --warning-100: #fbf0dc;
 
-  /* Rice Paper — warm neutral ground, easier on the eyes than cold AntD gray */
-  --paper-0: #fbf9f4;
-  --paper-50: #f7f4ec;
-  --paper-100: #efe9da;
-  --paper-line: #e3dcc8;
+  /* Neutral surfaces — everything sits on white or near-white now */
+  --surface: #ffffff;
+  --bg: #f6f7f9;
+  --border: #e6e8eb;
 
-  --slate-700: #333c4d;
-  --slate-500: #5b6472;
-  --slate-300: #8b93a1;
+  --slate-700: #384152;
+  --slate-500: #667085;
+  --slate-300: #98a2b3;
 
-  --font-display: "Fraunces", "Times New Roman", serif;
   --font-body: "Be Vietnam Pro", -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  --radius-plaque: 4px;
-  --radius-md: 8px;
-  --shadow-plaque: 0 1px 2px rgba(15, 26, 48, 0.06), 0 8px 24px -12px rgba(15, 26, 48, 0.28);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  :root {
-    --motion-ok: 1;
-  }
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.08);
+  --shadow-2: 0 4px 8px rgba(16, 24, 40, 0.04), 0 12px 24px -8px rgba(16, 24, 40, 0.14);
 }
 
 * {
@@ -69,7 +57,7 @@ body,
 
 body {
   font-family: var(--font-body);
-  background: var(--paper-50);
+  background: var(--bg);
   color: var(--slate-700);
 }
 
@@ -79,8 +67,10 @@ h3,
 .ant-typography h1,
 .ant-typography h2,
 .ant-typography h3 {
-  font-family: var(--font-display) !important;
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
   letter-spacing: -0.01em;
+  color: var(--ink-800);
 }
 
 code,
@@ -89,142 +79,106 @@ code,
   font-feature-settings: "tnum";
 }
 
-/* ---- Eyebrow label: small caps tag above a heading, used sparingly ---- */
+/* ---- Overline label above a heading — plain, small, used sparingly ---- */
 .crms-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-family: var(--font-body);
+  gap: 7px;
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--brass-500);
+  color: var(--primary-600);
 }
 
 .crms-eyebrow::before {
   content: "";
-  width: 18px;
-  height: 1px;
-  background: var(--brass-500);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary-500);
 }
 
-/* ---- Room plaque card: an engraved door plaque, not a stock photo card ---- */
+/* ---- Room card: flat, white, soft elevation — no engraved-plate motif ---- */
 .crms-plaque {
-  position: relative;
-  background: var(--paper-0);
-  border: 1px solid var(--paper-line);
-  border-radius: var(--radius-plaque);
-  box-shadow: var(--shadow-plaque);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-1);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .crms-plaque:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(15, 26, 48, 0.08), 0 16px 32px -14px rgba(15, 26, 48, 0.38);
+  box-shadow: var(--shadow-2);
+  transform: translateY(-2px);
 }
 
-.crms-plaque::before {
-  content: "";
-  position: absolute;
-  inset: 10px 10px auto 10px;
-  height: 2px;
-  background: linear-gradient(90deg, var(--brass-500), transparent 70%);
-  opacity: 0.8;
+.crms-plaque-media {
+  height: 140px;
+  background: var(--primary-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-600);
 }
 
 .crms-plaque-code {
   font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--slate-500);
+}
+
+/* ---- Status chip: small inline pill, used for the approval indicator ---- */
+.crms-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--brass-700);
+  padding: 4px 12px;
+  border-radius: 999px;
 }
 
-.crms-plaque-media {
-  height: 148px;
-  background: linear-gradient(160deg, var(--ink-800), var(--ink-700));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
+.crms-chip--success {
+  background: var(--primary-100);
+  color: var(--primary-700);
 }
 
-.crms-plaque-media .crms-plaque-glyph {
-  font-family: var(--font-display);
-  font-size: 40px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
-  letter-spacing: 0.02em;
-}
-
-/* ---- Approval seal / stamp: the signature moment on a decided booking ---- */
-.crms-seal {
-  --seal-color: var(--paddy-600);
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  border: 3px solid var(--seal-color);
-  color: var(--seal-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  line-height: 1.25;
-  transform: rotate(-9deg);
-  position: relative;
-  background: color-mix(in srgb, var(--seal-color) 6%, transparent);
-}
-
-.crms-seal::before {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border: 1px solid var(--seal-color);
-  border-radius: 50%;
-  opacity: 0.6;
-}
-
-.crms-seal--rejected {
-  --seal-color: var(--lacquer-600);
+.crms-chip--danger {
+  background: var(--danger-100);
+  color: var(--danger-700);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .crms-seal-enter {
-    animation: crms-stamp 0.42s cubic-bezier(0.2, 1.6, 0.4, 1);
+  .crms-chip-enter {
+    animation: crms-chip-in 0.22s ease-out;
   }
 }
 
-@keyframes crms-stamp {
-  0% {
+@keyframes crms-chip-in {
+  from {
     opacity: 0;
-    transform: rotate(-9deg) scale(2.4);
+    transform: scale(0.9);
   }
-  60% {
+  to {
     opacity: 1;
-  }
-  100% {
-    opacity: 1;
-    transform: rotate(-9deg) scale(1);
+    transform: scale(1);
   }
 }
 
 @media (max-width: 900px) {
   .crms-hero-grid {
     grid-template-columns: 1fr !important;
-    padding-top: 64px !important;
-    padding-bottom: 64px !important;
+    padding-top: 56px !important;
+    padding-bottom: 56px !important;
   }
 }
 
-/* Respect the OS-level reduced-motion preference everywhere, not just the seal */
+/* Respect the OS-level reduced-motion preference everywhere */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;

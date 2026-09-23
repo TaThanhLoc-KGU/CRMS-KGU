@@ -41,46 +41,25 @@ export default function AdminLayout() {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider breakpoint="lg" collapsedWidth="0">
+      <Sider breakpoint="lg" collapsedWidth="0" style={{ borderRight: "1px solid var(--border)" }}>
         <div
           style={{
             height: 48,
-            margin: "20px 16px 12px",
+            margin: "20px 16px 8px",
             display: "flex",
             alignItems: "center",
-            gap: 10,
             whiteSpace: "nowrap",
             overflow: "hidden",
           }}
         >
-          <span
-            aria-hidden
-            style={{
-              width: 28,
-              height: 28,
-              flexShrink: 0,
-              borderRadius: "50%",
-              border: "1.5px solid var(--brass-500)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: "var(--font-display)",
-              fontSize: 11,
-              fontWeight: 700,
-              color: "var(--brass-300)",
-            }}
-          >
-            KGU
-          </span>
-          <span style={{ color: "#fbf9f4", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 17 }}>
-            CRMS-KGU
+          <span style={{ color: "var(--ink-800)", fontWeight: 700, fontSize: 17 }}>
+            CRMS<span style={{ color: "var(--primary-600)" }}>-KGU</span>
           </span>
         </div>
-        <div style={{ margin: "0 16px 16px", height: 1, background: "rgba(216,185,121,0.25)" }} />
         <Menu
-          theme="dark"
           mode="inline"
           selectedKeys={[selectedKey]}
+          style={{ border: "none" }}
           items={menuItems.map((item) => ({
             key: item.key,
             icon: item.icon,
@@ -92,8 +71,8 @@ export default function AdminLayout() {
       <Layout>
         <Header
           style={{
-            background: "var(--paper-0)",
-            borderBottom: "1px solid var(--paper-line)",
+            background: "var(--surface)",
+            borderBottom: "1px solid var(--border)",
             display: "flex",
             alignItems: "center",
             justifyContent: "flex-end",

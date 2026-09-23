@@ -15,7 +15,7 @@ import {
   Alert,
   Table,
 } from "antd";
-import { CheckOutlined, CloseOutlined, DownloadOutlined, EyeOutlined } from "@ant-design/icons";
+import { CheckCircleFilled, CheckOutlined, CloseCircleFilled, CloseOutlined, DownloadOutlined, EyeOutlined } from "@ant-design/icons";
 import {
   approveBooking,
   cancelBooking,
@@ -148,23 +148,25 @@ export default function BookingDetailPage() {
       />
 
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-        <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-          {(APPROVED_LINEAGE.includes(booking.status) || booking.status === "REJECTED") && (
-            <div
-              className={`crms-seal ${booking.status === "REJECTED" ? "crms-seal--rejected" : ""} ${
-                justStamped ? "crms-seal-enter" : ""
-              }`}
-              style={{ position: "absolute", top: -10, right: 4, zIndex: 1 }}
-            >
-              {booking.status === "REJECTED" ? "Từ chối" : "Đã duyệt"}
-            </div>
-          )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+            <Typography.Title level={4} style={{ margin: 0 }}>
+              {booking.code}
+            </Typography.Title>
+            <Tag color={status.color}>{status.text}</Tag>
+            {(APPROVED_LINEAGE.includes(booking.status) || booking.status === "REJECTED") && (
+              <span
+                className={`crms-chip ${booking.status === "REJECTED" ? "crms-chip--danger" : "crms-chip--success"} ${
+                  justStamped ? "crms-chip-enter" : ""
+                }`}
+              >
+                {booking.status === "REJECTED" ? <CloseCircleFilled /> : <CheckCircleFilled />}
+                {booking.status === "REJECTED" ? "Đã từ chối" : "Đã duyệt"}
+              </span>
+            )}
+          </div>
 
-          <Typography.Title level={4}>
-            {booking.code} <Tag color={status.color}>{status.text}</Tag>
-          </Typography.Title>
-
-          <Descriptions bordered column={2} size="small" style={{ background: "var(--paper-0)", marginBottom: 16 }}>
+          <Descriptions bordered column={2} size="small" style={{ background: "var(--surface)", marginBottom: 16 }}>
             <Descriptions.Item label="Đơn vị">{booking.requesterUnit}</Descriptions.Item>
             <Descriptions.Item label="Người liên hệ">{booking.contactName}</Descriptions.Item>
             <Descriptions.Item label="Email">{booking.contactEmail}</Descriptions.Item>
@@ -207,7 +209,7 @@ export default function BookingDetailPage() {
             bordered
             dataSource={booking.attachments}
             locale={{ emptyText: "Không có văn bản đính kèm" }}
-            style={{ marginBottom: 16, background: "var(--paper-0)" }}
+            style={{ marginBottom: 16, background: "var(--surface)" }}
             renderItem={(attachment) => (
               <List.Item
                 actions={[
@@ -238,7 +240,7 @@ export default function BookingDetailPage() {
                 size="small"
                 bordered
                 dataSource={booking.approvals}
-                style={{ background: "var(--paper-0)", marginBottom: 16 }}
+                style={{ background: "var(--surface)", marginBottom: 16 }}
                 renderItem={(a) => (
                   <List.Item>
                     <Tag color={a.decision === "APPROVED" ? "green" : "red"}>

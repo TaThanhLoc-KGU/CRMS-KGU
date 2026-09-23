@@ -1,42 +1,41 @@
 import type { ThemeConfig } from "antd";
 
 /**
- * CRMS-KGU visual identity — see the header comment in index.css for the design
- * rationale ("room plaque / official seal"). Hex values here must stay in sync
- * with the CSS custom properties there; AntD's theme tokens can't read CSS vars.
+ * CRMS-KGU visual identity — clean/minimal, Material-influenced. Hex values
+ * here must stay in sync with the CSS custom properties in index.css; AntD's
+ * theme tokens can't read CSS vars. See CLAUDE.md "Giao diện" for the earlier
+ * ornate ("bảng tên phòng / con dấu") pass this replaced and why.
  */
 export const crmsTheme: ThemeConfig = {
   token: {
-    colorPrimary: "#2f6d4f",
-    colorLink: "#2f6d4f",
-    colorSuccess: "#2f6d4f",
-    colorWarning: "#b8892a",
-    colorError: "#a63d33",
-    colorInfo: "#14213d",
-    colorText: "#333c4d",
-    colorTextSecondary: "#5b6472",
-    colorBorder: "#e3dcc8",
-    colorBgLayout: "#f7f4ec",
-    colorBgContainer: "#fbf9f4",
+    colorPrimary: "#0f9d6e",
+    colorLink: "#0f9d6e",
+    colorSuccess: "#0f9d6e",
+    colorWarning: "#b7791f",
+    colorError: "#d33d2e",
+    colorInfo: "#0f9d6e",
+    colorText: "#384152",
+    colorTextSecondary: "#667085",
+    colorBorder: "#e6e8eb",
+    colorBgLayout: "#f6f7f9",
+    colorBgContainer: "#ffffff",
     fontFamily: "'Be Vietnam Pro', -apple-system, 'Segoe UI', sans-serif",
-    borderRadius: 6,
-    borderRadiusLG: 8,
+    borderRadius: 8,
+    borderRadiusLG: 10,
     wireframe: false,
   },
   components: {
     Layout: {
-      headerBg: "#14213d",
-      siderBg: "#14213d",
-      bodyBg: "#f7f4ec",
-      headerColor: "#fbf9f4",
+      headerBg: "#ffffff",
+      siderBg: "#ffffff",
+      bodyBg: "#f6f7f9",
+      headerColor: "#1c1f26",
     },
     Menu: {
-      darkItemBg: "#14213d",
-      darkItemSelectedBg: "#1c2c4d",
-      darkItemColor: "rgba(251,249,244,0.72)",
-      darkItemHoverColor: "#fbf9f4",
-      darkItemSelectedColor: "#d9b979",
-      itemBorderRadius: 4,
+      itemBorderRadius: 6,
+      itemSelectedBg: "#e3f6ee",
+      itemSelectedColor: "#0b7a52",
+      itemHoverBg: "#f6f7f9",
     },
     Button: {
       fontWeight: 600,
@@ -44,16 +43,16 @@ export const crmsTheme: ThemeConfig = {
       controlHeightLG: 44,
     },
     Card: {
-      borderRadiusLG: 4,
-      colorBorderSecondary: "#e3dcc8",
+      borderRadiusLG: 10,
+      colorBorderSecondary: "#e6e8eb",
     },
     Tag: {
-      borderRadiusSM: 4,
+      borderRadiusSM: 6,
     },
     Table: {
-      headerBg: "#f3e8d1",
-      headerColor: "#14213d",
-      borderColor: "#e3dcc8",
+      headerBg: "#f6f7f9",
+      headerColor: "#1c1f26",
+      borderColor: "#e6e8eb",
     },
   },
 };

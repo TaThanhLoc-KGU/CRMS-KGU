@@ -38,45 +38,28 @@ export default function LoginPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(165deg, var(--ink-900), var(--ink-700) 78%)",
+        background: "var(--bg)",
         padding: 24,
       }}
     >
       <div style={{ width: 380 }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <span
-            aria-hidden
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: "50%",
-              border: "1.5px solid var(--brass-500)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: "var(--font-display)",
-              fontSize: 20,
-              fontWeight: 700,
-              color: "var(--brass-300)",
-              marginBottom: 16,
-            }}
-          >
-            KGU
-          </span>
-          <Typography.Title level={3} style={{ color: "var(--paper-0)", margin: "0 0 6px" }}>
+          <div style={{ fontWeight: 700, fontSize: 22, marginBottom: 10 }}>
+            <span style={{ color: "var(--ink-800)" }}>CRMS</span>
+            <span style={{ color: "var(--primary-600)" }}>-KGU</span>
+          </div>
+          <Typography.Title level={4} style={{ margin: "0 0 4px" }}>
             {t.auth.loginTitle}
           </Typography.Title>
-          <Typography.Text style={{ color: "rgba(251,249,244,0.62)" }}>
-            Trung tâm Hội nghị — Trường Đại học Kiên Giang
-          </Typography.Text>
+          <Typography.Text type="secondary">Trung tâm Hội nghị — Trường Đại học Kiên Giang</Typography.Text>
         </div>
 
         <div
           style={{
-            background: "var(--paper-0)",
+            background: "var(--surface)",
             borderRadius: "var(--radius-md)",
-            border: "1px solid var(--paper-line)",
-            boxShadow: "var(--shadow-plaque)",
+            border: "1px solid var(--border)",
+            boxShadow: "var(--shadow-1)",
             padding: "28px 28px 8px",
           }}
         >
