@@ -1,125 +1,84 @@
-# CRMS-KGU — Hệ thống Quản lý Phòng, Trung tâm Hội nghị Trường Đại học Kiên Giang
+# CRMS-KGU
 
-Tài liệu | Dành cho | Nội dung
----|---|---
-[`docs/spec.md`](docs/spec.md) | Mọi người | Đặc tả nghiệp vụ đầy đủ (nguồn sự thật)
-[`docs/huong-dan-su-dung.md`](docs/huong-dan-su-dung.md) | **Cán bộ dùng trang quản trị** | Cách đăng nhập, quản lý phòng & tài sản — không cần biết code
-`README.md` (file này) | **Người cài đặt/vận hành** | Cách chạy, build, deploy dự án
-[`CLAUDE.md`](CLAUDE.md) | **Lập trình viên** | Quy ước code, kiến trúc, các bẫy kỹ thuật đã gặp
+Hệ thống quản lý phòng cho Trung tâm Hội nghị — Trường Đại học Kiên Giang. Đăng ký
+mượn phòng online, duyệt đơn, quản lý phòng/tài sản, in phiếu mượn-trả, báo cáo.
 
-**Trạng thái:** P0 (khung nền) hoàn thành — CRUD Phòng & tài sản trong phòng chạy
-đầu-cuối, có đăng nhập JWT, Swagger UI, health-check, chạy được bằng
-`docker compose up`.
+Đọc thêm: đặc tả nghiệp vụ ở [`docs/spec.md`](docs/spec.md), hướng dẫn dùng trang
+quản trị (cho cán bộ, không cần biết code) ở
+[`docs/huong-dan-su-dung.md`](docs/huong-dan-su-dung.md), quy ước code cho ai maintain
+sau này ở [`CLAUDE.md`](CLAUDE.md).
 
-## Yêu cầu môi trường
+Stack: Spring Boot 4 (Java 21) + PostgreSQL 16 ở backend, React + Vite + TypeScript +
+Ant Design ở frontend, Flyway lo schema, JWT lo auth, Docker Compose lo deploy.
 
-- Docker Desktop (cách chạy khuyến nghị), hoặc
-- Java 21+, Maven (kèm sẵn `mvnw`), Node.js 20+, PostgreSQL 16+ nếu chạy rời từng phần.
+Đã xong: quản lý phòng/tài sản, đăng ký mượn phòng công khai + duyệt/từ chối, lịch
+(FullCalendar + iCal), email tự động, cấu hình qua UI, quản lý người dùng. Đang làm:
+phiếu mượn/trả + báo cáo (P2).
 
-## Chạy nhanh bằng Docker Compose
+## Chạy thử nhanh nhất — Docker Compose
 
 ```bash
 cd deploy
 cp .env.example .env
 ```
 
-Mở `deploy/.env` và **đổi `POSTGRES_PASSWORD` và `JWT_SECRET`** (giá trị mặc định chỉ
-để chạy thử cục bộ).
+Sửa `POSTGRES_PASSWORD` và `JWT_SECRET` trong `.env` (mặc định chỉ để test cục bộ,
+đừng dùng khi chạy thật).
 
 ```bash
 docker compose up --build
 ```
 
-Sau khi các service khởi động xong (`docker compose ps` để kiểm tra):
+Build lần đầu khá lâu (~25-30 phút, do Maven tải dependency từ đầu trong container),
+lần sau nhanh hơn nhiều nhờ cache layer. Xong thì vào:
 
-| Địa chỉ | Nội dung |
-|---|---|
-| http://localhost:8092 | Frontend (trang quản trị) |
-| http://localhost:8090/swagger-ui.html | Swagger UI (API docs) |
-| http://localhost:8090/actuator/health | Health check |
+- Frontend: http://localhost:8092
+- Swagger: http://localhost:8090/swagger-ui.html
+- Health check: http://localhost:8090/actuator/health
 
-Đăng nhập quản trị: **admin / Admin@123** (tài khoản seed sẵn trong
-`V2__seed.sql` — đổi mật khẩu ngay nếu triển khai thật).
+Đăng nhập `admin` / `Admin@123` (đổi ngay nếu deploy thật, tài khoản này seed sẵn
+trong `V2__seed.sql`).
 
-Dừng và xoá container (giữ lại dữ liệu DB nhờ volume):
+Dừng: `docker compose down` (giữ data), thêm `-v` nếu muốn xóa luôn DB.
 
-```bash
-docker compose down
-```
+## Chạy dev không qua Docker
 
-Xoá luôn dữ liệu DB (bắt đầu lại từ đầu):
+Cần Java 21, Maven (đã có `mvnw`), Node 20+, và một Postgres 16+ đang chạy đâu đó.
 
-```bash
-docker compose down -v
-```
-
-## Chạy rời từng phần (dev, không cần Docker cho code — vẫn cần Postgres)
-
-**Backend** (cần một PostgreSQL 16+ đang chạy ở đâu đó, tự tạo database trống trước):
+Backend:
 
 ```bash
 cd backend
 export DB_HOST=localhost DB_PORT=5432 DB_NAME=crms_kgu DB_USER=crms DB_PASSWORD=crms
-export JWT_SECRET=dev-secret-at-least-32-bytes-long-please
+export JWT_SECRET=dev-secret-it-just-needs-to-be-32-bytes-or-longer
 ./mvnw spring-boot:run
 ```
 
-Windows PowerShell: dùng `$env:DB_HOST = "localhost"` v.v. thay cho `export`.
+(PowerShell thì `$env:DB_HOST = "localhost"` thay vì `export`.) Flyway tự chạy
+migration lúc khởi động, không cần làm gì thêm.
 
-Flyway tự chạy migration khi backend khởi động — không cần thao tác gì thêm.
-
-**Frontend:**
+Frontend:
 
 ```bash
 cd frontend
-cp .env.example .env   # sửa VITE_API_BASE_URL nếu backend không chạy ở cổng mặc định
+cp .env.example .env
 npm install
 npm run dev
 ```
 
-Mặc định Vite chạy ở http://localhost:5173.
+Mặc định chạy ở http://localhost:5173.
 
-## Kiểm thử đã thực hiện cho P0
+## Vài điều cần biết trước khi đụng vào
 
-Đã kiểm thử thủ công (curl + psql trực tiếp vào container Postgres test), không phải
-suy đoán:
+- Cổng mặc định lệch chuẩn (8090/8092/5433/3050 thay vì 8080/5432) — chọn vậy để
+  không đụng máy nào đã có sẵn Postgres hay service khác chạy 8080. Đổi được trong
+  `deploy/.env`, nhớ sửa `CORS_ALLOWED_ORIGINS` theo nếu đổi port frontend.
+- Chưa có test tự động. Logic quan trọng nhất (chống trùng lịch) nằm ở constraint
+  CSDL chứ không phải code Java, xem `V1__init.sql`.
+- Chi tiết hơn (kiến trúc, quyết định thiết kế, bug đã gặp lúc build) nằm trong
+  `CLAUDE.md` — đọc trước khi sửa gì lớn.
 
-- Đăng nhập JWT (`POST /api/v1/auth/login`), làm mới token (`/auth/refresh`).
-- CRUD Phòng đầy đủ (`GET/POST/PUT/DELETE /api/v1/rooms`), thêm/xoá ảnh phòng.
-- CRUD Tài sản trong phòng đầy đủ (`GET/POST/PUT/DELETE` dưới `/rooms/{id}/assets` và
-  `/assets/{id}`).
-- Lỗi trả đúng mã: 400 (validate/JSON sai định dạng), 401/403 (chưa đăng nhập), 404
-  (không tồn tại), 409 (trùng mã phòng/mã tài sản).
-- Tiếng Việt có dấu round-trip đúng qua toàn bộ chuỗi request → DB → response.
-- **Ràng buộc chống trùng lịch ở CSDL** (`no_overlap_per_room`, EXCLUDE constraint):
-  test trực tiếp bằng INSERT SQL vì Booking API chưa xây ở P0 —
-  2 booking APPROVED trùng giờ cùng phòng bị CSDL từ chối; không trùng, khác phòng,
-  hoặc khác trạng thái (chưa APPROVED) thì vẫn insert được bình thường.
-- Migration Flyway chạy sạch từ database rỗng (`V1__init.sql` + `V2__seed.sql`).
+## Lộ trình
 
-Frontend đã test qua trình duyệt thật (không phải suy đoán): đăng nhập → danh sách
-phòng (dữ liệu seed hiển thị đúng, tiếng Việt có dấu) → vào trang quản lý tài sản của
-một phòng → thêm/sửa/xóa tài sản (toast xác nhận, bảng cập nhật ngay) → quay lại →
-thêm/sửa/xóa phòng → đăng xuất (xóa token, chuyển về trang đăng nhập) → truy cập thẳng
-`/admin/rooms` khi chưa đăng nhập bị chặn và chuyển hướng về `/admin/login` đúng như
-thiết kế `RequireAuth`.
-
-## Rủi ro / hạn chế đã biết của P0
-
-- Ảnh phòng chỉ nhận URL dán tay, chưa upload file thật (dự kiến làm ở P1 cùng lúc với
-  upload văn bản đính kèm khi đăng ký mượn phòng).
-- Chưa có test tự động (unit/integration test) — P0 chỉ có CRUD đơn giản, đã kiểm thử
-  thủ công đầy đủ; test tự động cho logic lõi (trùng lịch, lead-time) sẽ viết cùng
-  `BookingService` ở P1 theo đúng yêu cầu spec.
-- `docker compose up --build` build image từ đầu (Maven + npm). Lần build đầu tiên đã
-  đo thực tế mất **~25–30 phút**, gần hết là do bước `mvn dependency:go-offline` tải
-  toàn bộ dependency Spring Boot từ Maven Central bên trong container (không dùng
-  chung cache `~/.m2` với máy host) — đây là chi phí một lần, các lần build sau chỉ
-  tốn vài chục giây nhờ Docker layer cache (miễn `backend/pom.xml` không đổi).
-- Cổng mặc định (8090 backend, 8092 frontend, 5433 postgres, 3050 gotenberg) được chọn
-  để tránh đụng cổng phổ biến (8080, 5432); nếu máy bạn trống các cổng đó, có thể đổi
-  lại trong `deploy/.env` cho ngắn gọn hơn — nhớ cập nhật `CORS_ALLOWED_ORIGINS` tương ứng.
-
-## Bước tiếp theo
-
-P1 — MVP đặt phòng: xem đặc tả §17 và mục "Việc chưa làm trong P0" trong `CLAUDE.md`.
+Xem `docs/spec.md` mục 17 để biết đầy đủ P0 → P3. Trạng thái hiện tại thì xem
+`CLAUDE.md`, phần đầu file luôn ghi rõ đang ở giai đoạn nào.

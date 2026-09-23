@@ -81,3 +81,18 @@ export async function updateRoom(id: number, request: RoomRequest): Promise<Room
 export async function deleteRoom(id: number): Promise<void> {
   await apiClient.delete(`/rooms/${id}`);
 }
+
+// Public (unauthenticated) variants — same shape, different path. The admin
+// /rooms endpoints require a JWT and also return non-ACTIVE rooms, neither of
+// which is appropriate for the public portal.
+export async function listPublicRooms(params: RoomListParams = {}): Promise<PageResponse<Room>> {
+  const { data } = await apiClient.get<PageResponse<Room>>("/public/rooms", {
+    params: { size: 50, ...params },
+  });
+  return data;
+}
+
+export async function getPublicRoom(id: number): Promise<Room> {
+  const { data } = await apiClient.get<Room>(`/public/rooms/${id}`);
+  return data;
+}

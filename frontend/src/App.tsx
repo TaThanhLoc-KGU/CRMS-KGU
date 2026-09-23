@@ -2,14 +2,35 @@ import { Navigate, Route, BrowserRouter, Routes } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import RoomsPage from "./pages/admin/RoomsPage";
 import RoomDetailPage from "./pages/admin/RoomDetailPage";
+import BookingsQueuePage from "./pages/admin/BookingsQueuePage";
+import BookingDetailPage from "./pages/admin/BookingDetailPage";
+import CalendarAdminPage from "./pages/admin/CalendarAdminPage";
+import ConfigPage from "./pages/admin/ConfigPage";
+import UsersPage from "./pages/admin/UsersPage";
+import LandingPage from "./pages/public/LandingPage";
+import RoomsPublicPage from "./pages/public/RoomsPublicPage";
+import RoomDetailPublicPage from "./pages/public/RoomDetailPublicPage";
+import BookingFormPage from "./pages/public/BookingFormPage";
+import BookingLookupPage from "./pages/public/BookingLookupPage";
+import CalendarPublicPage from "./pages/public/CalendarPublicPage";
 import AdminLayout from "./layouts/AdminLayout";
+import PublicLayout from "./layouts/PublicLayout";
 import RequireAuth from "./components/RequireAuth";
+import RequireRole from "./components/RequireRole";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/admin/rooms" replace />} />
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/rooms" element={<RoomsPublicPage />} />
+          <Route path="/rooms/:roomId" element={<RoomDetailPublicPage />} />
+          <Route path="/booking/new" element={<BookingFormPage />} />
+          <Route path="/lookup" element={<BookingLookupPage />} />
+          <Route path="/calendar" element={<CalendarPublicPage />} />
+        </Route>
+
         <Route path="/admin/login" element={<LoginPage />} />
         <Route
           path="/admin"
@@ -22,8 +43,28 @@ export default function App() {
           <Route index element={<Navigate to="rooms" replace />} />
           <Route path="rooms" element={<RoomsPage />} />
           <Route path="rooms/:roomId" element={<RoomDetailPage />} />
+          <Route path="bookings" element={<BookingsQueuePage />} />
+          <Route path="bookings/:bookingId" element={<BookingDetailPage />} />
+          <Route path="calendar" element={<CalendarAdminPage />} />
+          <Route
+            path="config"
+            element={
+              <RequireRole roles={["ADMIN"]}>
+                <ConfigPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="users"
+            element={
+              <RequireRole roles={["ADMIN"]}>
+                <UsersPage />
+              </RequireRole>
+            }
+          />
         </Route>
-        <Route path="*" element={<Navigate to="/admin/rooms" replace />} />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

@@ -2,6 +2,13 @@ import axios from "axios";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
+// In docker VITE_API_BASE_URL is "/api/v1" (relative, nginx-proxied); in local dev it's
+// absolute ("http://localhost:8090/api/v1"). Endpoints that hand back a server-rooted
+// path (e.g. the attachment preview signed URL, which already starts with "/api/v1/...")
+// need just the origin here, not API_BASE_URL itself — concatenating the two would
+// double up "/api/v1".
+export const API_ORIGIN = API_BASE_URL.startsWith("http") ? new URL(API_BASE_URL).origin : window.location.origin;
+
 const ACCESS_TOKEN_KEY = "crms.accessToken";
 const REFRESH_TOKEN_KEY = "crms.refreshToken";
 

@@ -1,5 +1,12 @@
 import { Layout, Menu, Button, Typography, Space } from "antd";
-import { HomeOutlined, LogoutOutlined } from "@ant-design/icons";
+import {
+  HomeOutlined,
+  LogoutOutlined,
+  FileDoneOutlined,
+  CalendarOutlined,
+  SettingOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
@@ -10,8 +17,21 @@ export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const isAdmin = user?.role === "ADMIN";
 
-  const selectedKey = location.pathname.startsWith("/admin/rooms") ? "rooms" : "";
+  const menuItems = [
+    { key: "rooms", path: "/admin/rooms", icon: <HomeOutlined />, label: "Quản lý phòng" },
+    { key: "bookings", path: "/admin/bookings", icon: <FileDoneOutlined />, label: "Duyệt đơn" },
+    { key: "calendar", path: "/admin/calendar", icon: <CalendarOutlined />, label: "Lịch nội bộ" },
+    ...(isAdmin
+      ? [
+          { key: "users", path: "/admin/users", icon: <TeamOutlined />, label: "Người dùng" },
+          { key: "config", path: "/admin/config", icon: <SettingOutlined />, label: "Cấu hình" },
+        ]
+      : []),
+  ];
+
+  const selectedKey = menuItems.find((item) => location.pathname.startsWith(item.path))?.key ?? "";
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -33,14 +53,12 @@ export default function AdminLayout() {
           theme="dark"
           mode="inline"
           selectedKeys={[selectedKey]}
-          items={[
-            {
-              key: "rooms",
-              icon: <HomeOutlined />,
-              label: "Quản lý phòng",
-              onClick: () => navigate("/admin/rooms"),
-            },
-          ]}
+          items={menuItems.map((item) => ({
+            key: item.key,
+            icon: item.icon,
+            label: item.label,
+            onClick: () => navigate(item.path),
+          }))}
         />
       </Sider>
       <Layout>
@@ -54,7 +72,7 @@ export default function AdminLayout() {
           }}
         >
           <Space>
-            <Text>{user?.fullName ?? user?.username}</Text>
+            <Text>{user?.fullName ?? user?.username} ({user?.role})</Text>
             <Button
               icon={<LogoutOutlined />}
               onClick={() => {

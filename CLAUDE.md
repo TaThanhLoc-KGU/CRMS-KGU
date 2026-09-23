@@ -6,9 +6,16 @@ thay đổi phạm vi hoặc luồng nghiệp vụ.
 
 ## Trạng thái hiện tại
 
-**P0 (khung nền) — hoàn thành.** CRUD Phòng + tài sản trong phòng chạy đầu-cuối qua
-Docker Compose, có JWT auth, Swagger UI, health-check. Xem "Lộ trình" trong spec §17
-cho các giai đoạn tiếp theo (P1: MVP đặt phòng; P2: phiếu & báo cáo; P3: nâng cao).
+**P0 + P1 — hoàn thành.** P0: CRUD Phòng + tài sản. P1 (MVP đặt phòng): trang công khai
+đăng ký mượn phòng (upload văn bản, kiểm tra lead-time/giờ làm việc/ngày lễ, kiểm tra
+trùng lịch), trang admin duyệt/từ chối/hủy đơn với xem file đính kèm inline, lịch công
+khai + nội bộ (FullCalendar) + feed iCal, email tự động (nhận đơn/duyệt/từ chối/nhắc
+lịch), module cấu hình đọc/ghi qua UI, quản lý người dùng nội bộ (RBAC 3 vai trò), gợi ý
+phòng thay thế khi trùng lịch. Toàn bộ đã test qua Docker thật + trình duyệt thật, không
+phải suy đoán — xem "Kiểm thử đã làm cho P1" bên dưới.
+
+Đang làm: P2 (phiếu mượn/trả + PDF/QR, báo cáo thống kê, audit log, duyệt đa cấp) và P3
+(nâng cao). Xem "Lộ trình" trong spec §17.
 
 ## Ngăn xếp công nghệ
 
@@ -33,31 +40,43 @@ trong `backend/pom.xml`, đừng đoán ngược lại thêm `.RELEASE`.
 
 ```
 crms-kgu/
-├── docs/spec.md              # Đặc tả — nguồn sự thật nghiệp vụ
+├── docs/
+│   ├── spec.md                 # Đặc tả — nguồn sự thật nghiệp vụ
+│   └── huong-dan-su-dung.md    # Hướng dẫn dùng trang quản trị (cho cán bộ, không phải dev)
 ├── backend/
 │   └── src/main/java/vn/edu/vnkgu/crms/
-│       ├── common/            # ApiException, GlobalExceptionHandler, ApiErrorResponse
-│       ├── config/            # SecurityConfig, OpenApiConfig, JwtProperties
-│       ├── security/          # User, Role, JWT filter/service, AuthController
-│       ├── room/               # Room, RoomImage, SetupStyle (schema only), CRUD
-│       └── asset/               # Asset (tài sản/thiết bị trong phòng), CRUD
+│       ├── common/              # ApiException, GlobalExceptionHandler, ApiErrorResponse
+│       │   ├── storage/          # StorageService + LocalDiskStorageService, FileValidator (magic bytes)
+│       │   └── preview/          # PreviewConversionService (Gotenberg), PreviewTokenService (signed URL)
+│       ├── config/               # SecurityConfig, OpenApiConfig, JwtProperties
+│       │   └── domain/            # Configuration entity/service/controller (bảng configurations)
+│       ├── security/             # User, Role, JWT filter/service, AuthController, UserController (admin)
+│       ├── mail/                 # EmailTemplate, EmailLog, MailService (JavaMailSender + {{var}} substitution)
+│       ├── room/                 # Room, RoomImage, SetupStyle, CRUD + PublicRoomController
+│       ├── asset/                # Asset (tài sản/thiết bị trong phòng), CRUD
+│       └── booking/              # Booking, BookingAttachment/Equipment, Approval, EquipmentCatalog,
+│                                  # WorkingHours/PublicHoliday, SchedulingRulesService, BookingService,
+│                                  # ReminderScheduler, PublicBookingController, BookingController (admin)
 │   └── src/main/resources/
 │       ├── application.yml
-│       └── db/migration/      # V1__init.sql, V2__seed.sql (Flyway)
+│       └── db/migration/        # V1__init, V2__seed, V3__email_templates, V4__booking_reminders
 ├── frontend/
-│   └── src/{api,components,hooks,i18n,layouts,pages}
+│   └── src/
+│       ├── api/                  # 1 file/domain: rooms, assets, bookings, config, catalog, users, emailTemplates
+│       ├── layouts/              # AdminLayout (sau đăng nhập) và PublicLayout (trang công khai) — tách biệt
+│       └── pages/{public,admin}  # public/ = không cần đăng nhập, admin/ = sau RequireAuth
 └── deploy/
-    ├── docker-compose.yml
+    ├── docker-compose.yml       # postgres, gotenberg, backend, frontend(nginx)
     ├── Dockerfile.backend
     ├── Dockerfile.frontend
     ├── nginx.conf
     └── .env.example
 ```
 
-Các package `booking`, `handover`, `mail`, `report` trong đặc tả gốc **chưa được tạo**
-— chỉ tạo khi thực sự cần code cho phase đó (P1/P2), tránh có sẵn thư mục rỗng vô nghĩa.
-Bảng CSDL tương ứng (`bookings`, `handover_slips`, `email_templates`, …) đã có sẵn từ
-`V1__init.sql` vì Flyway quản lý schema độc lập với việc entity Java đã tồn tại hay chưa.
+`handover` (phiếu mượn/trả) và `report` (báo cáo) trong đặc tả gốc **chưa được tạo** —
+đó là P2. Bảng CSDL tương ứng (`handover_slips`, `handover_items`, `audit_logs`) đã có
+sẵn từ `V1__init.sql` vì Flyway quản lý schema độc lập với việc entity Java đã tồn tại
+hay chưa.
 
 ## Quy ước bắt buộc (không đổi khi làm phase sau)
 
@@ -126,6 +145,47 @@ Bảng CSDL tương ứng (`bookings`, `handover_slips`, `email_templates`, …)
    ổn — phải chạy `npm run build` (hoặc để `docker compose build` tự chạy) trước khi
    báo xong việc.
 
+### Bẫy đã gặp khi làm P1
+
+8. **Trang công khai gọi nhầm API admin.** `RoomsPublicPage`, `LandingPage`, v.v. lúc
+   đầu import `listRooms`/`getRoom` từ `api/rooms.ts` — đó là hàm gọi `/api/v1/rooms`
+   (yêu cầu JWT, trả cả phòng MAINTENANCE/DISABLED). Khách vãng lai chưa đăng nhập nên
+   nhận 403, phòng trống trơn. Fix: thêm `listPublicRooms`/`getPublicRoom` gọi
+   `/api/v1/public/rooms` riêng, không sửa hàm admin. **Bài học:** mỗi khi thêm trang
+   `pages/public/*`, kiểm tra ngay hàm `api/*.ts` nó gọi có đúng là biến thể `/public/`
+   không — cùng một resource (Room) có 2 bộ endpoint khác nhau cho 2 đối tượng.
+9. **Cascade-persist qua parent y hệt bẫy #3 nhưng ở chỗ khác: `BookingService.submit()`.**
+   `bookingRepository.save(booking)` (booking mới, nhánh `persist()`) chạy trước, rồi mới
+   `booking.getAttachments().add(...)`/`getEquipments().add(...)` sau đó — vì flush bị
+   hoãn tới cuối transaction, response trả `attachments[].id: null`. Fix: gọi thêm
+   `bookingRepository.saveAndFlush(booking)` sau khi gắn xong attachment/equipment,
+   ngay trước khi map sang DTO trả về.
+10. **URL bị lặp `/api/v1/api/v1` khi ghép URL preview ở frontend.** Backend trả
+    `previewUrl()` dạng path đầy đủ (`/api/v1/bookings/{id}/attachments/{aid}/preview?token=...`);
+    frontend lại ghép `${API_BASE_URL}${url}` trong khi `API_BASE_URL` đã có sẵn
+    `/api/v1`. Fix: thêm `API_ORIGIN` trong `api/client.ts` (chỉ lấy
+    protocol+host+port, tự xử lý cả trường hợp `API_BASE_URL` là path tương đối
+    `/api/v1` khi chạy qua nginx trong Docker) và dùng `${API_ORIGIN}${url}`.
+11. **Spring Security mặc định gửi `X-Frame-Options: DENY` trên MỌI response — kể cả
+    endpoint đã `permitAll()`.** Request preview trả 200 đúng nội dung PDF, nhưng
+    `<iframe>` hiện trắng vì trình duyệt tự chặn hiển thị (`net::ERR_BLOCKED_BY_RESPONSE`
+    trong DevTools, không phải lỗi HTTP). Permit-all trong `authorizeHttpRequests` chỉ
+    quyết định ai được GỌI endpoint, không liên quan gì tới header `X-Frame-Options` —
+    hai cơ chế độc lập nhau. Fix: tách một `SecurityFilterChain` thứ hai
+    (`@Order(1)`, `securityMatcher(PREVIEW_PATH)`) chỉ cho đúng path
+    `/api/v1/bookings/*/attachments/*/preview`, tắt `frameOptions` ở đó — an toàn vì
+    endpoint này đã được bảo vệ bằng signed token (HMAC, hết hạn sau
+    `app.preview-token.ttl-minutes` phút), không phải bằng frame-ancestry.
+12. **`@fullcalendar/react` mới nhất (7.1.0) không tương thích với các plugin
+    `@fullcalendar/daygrid`/`timegrid`/`list` — các plugin này chưa có bản ổn định 7.x**
+    (mới tới `7.0.0-rc.0`), gây lỗi kiểu `tsc -b` kiểu "Type X is missing properties
+    ... required in type X" (2 bản `EventImpl` khác nhau từ 2 gói core trùng tên).
+    Fix: ghim tất cả `@fullcalendar/*` về cùng bản ổn định mới nhất mà TẤT CẢ gói đều
+    có — hiện là `6.1.21`. Khi nâng cấp FullCalendar sau này, luôn `npm ls
+    @fullcalendar/core` để chắc chắn chỉ có một phiên bản duy nhất (không bị dedupe
+    lỗi hoặc mismatch), và kiểm tra `npm view @fullcalendar/<plugin> versions` cho
+    TỪNG gói trước khi ghim version mới.
+
 ## Chạy dự án
 
 ### Cách nhanh nhất — Docker Compose
@@ -161,26 +221,32 @@ npm install
 npm run dev
 ```
 
-## Việc chưa làm trong P0 (cố ý, để P1 xử lý)
+## Việc chưa làm (cố ý, để P2/P3 xử lý)
 
-- Không có API `/api/v1/config` (đọc/ghi cấu hình) dù bảng `configurations` đã seed —
-  P0 không có nghiệp vụ nào cần đọc cấu hình động (lead-time, giờ làm việc chỉ dùng khi
-  có luồng đặt phòng). Đừng build UI cấu hình trước khi có chỗ dùng nó.
-- Ảnh phòng (`room_images`) chỉ nhận URL dán tay, chưa có upload file thật. Upload file
-  kèm `StorageService` interface (ẩn sau để swap Nextcloud/MinIO), magic-byte
-  validation, và bản xem nhanh qua Gotenberg — làm ở P1 khi có form đăng ký + đính kèm
-  văn bản (đây là nơi upload file thật sự cần).
-- `SetupStyle`/`room_setup_styles`, `equipment_catalog` đã có bảng + seed dữ liệu
-  nhưng chưa có entity Java/API — chỉ cần khi build form đặt phòng (P1).
-- Gotenberg đã chạy sẵn trong `docker-compose.yml` nhưng backend chưa gọi tới —
-  dùng ở P1 để xem nhanh file Office → PDF.
-- Bundle frontend production build ~1.2MB (gzip ~385KB), Vite cảnh báo "chunk lớn hơn
-  500KB" — chủ yếu do Ant Design. Chưa đáng để code-split ở quy mô P0 (1 trang admin
-  đơn giản); cân nhắc `dynamic import()` cho các trang lớn hơn khi UI phình ra ở P1/P2.
-- Không có test tự động (unit/integration) cho P0 — theo yêu cầu spec, test cho logic
-  lõi (kiểm tra trùng lịch, lead-time) sẽ viết cùng lúc với `BookingService` ở P1, vì
-  P0 không có logic nghiệp vụ phức tạp nào đáng test riêng (CRUD đơn giản đã được xác
-  minh thủ công qua Swagger/curl — xem phần "Đã kiểm thử" trong README).
+- **Phiếu mượn/trả phòng** (`handover_slips`/`handover_items` đã có bảng, chưa có
+  entity/API): in PDF + QR khi phòng đã APPROVED → cấp phiếu (SLIP_ISSUED) → bàn giao
+  (IN_USE) → trả (RETURNED). Đây là P2.
+- **Báo cáo/thống kê** (`/reports/usage`) và **audit log** (`audit_logs` đã có bảng,
+  chưa ghi gì vào đó) — P2. Khi làm audit log, cân nhắc AOP/interceptor ghi tự động ở
+  tầng service thay vì gọi thủ công rải rác từng chỗ.
+- **Duyệt đa cấp thật sự** — bảng `approvals.level` đã có sẵn, `BookingService.approve()`
+  hiện luôn ghi `level=1` và chuyển thẳng sang APPROVED sau đúng 1 lần duyệt (khớp với
+  default `booking.require_approval_levels=1`). Khi làm đa cấp, cần thêm state
+  `UNDER_REVIEW` chuyển tiếp giữa các cấp và logic "đã đủ số cấp chưa" — chưa có ở P1.
+- Reminder scheduler (`ReminderScheduler`, chạy mỗi 15 phút) mới xử lý
+  `REMIND_BEFORE`/`REMIND_RETURN`; chưa có UI xem lịch sử gửi ngoài bảng `email_logs`
+  thô — cân nhắc thêm màn hình xem log email ở P2 nếu cần tra soát.
+- QR check-in/out, Zalo OA, SSO/AD, digital signage, recurring/waitlist thật sự (P3) —
+  xem spec §16. Trong đó **waitlist hiện chỉ là "vẫn chấp nhận nộp đơn khi trùng lịch
+  nếu `booking.on_conflict=WAITLIST`"**, không có hàng đợi/tự thông báo khi trống chỗ.
+- Bundle frontend production build ~1.7MB (gzip ~540KB) sau khi thêm FullCalendar —
+  Vite vẫn cảnh báo "chunk lớn hơn 500KB". Chưa code-split; cân nhắc `dynamic import()`
+  cho trang Lịch (`CalendarPublicPage`/`CalendarAdminPage`, nặng nhất) nếu bundle size
+  trở thành vấn đề thật.
+- Vẫn chưa có test tự động (unit/integration). Logic quan trọng nhất
+  (`SchedulingRulesService`, chống trùng lịch) đã được kiểm thử **thủ công đầy đủ**
+  qua Docker thật (xem "Kiểm thử đã làm cho P1") nhưng chưa có test tự động hoá lại —
+  nên làm sớm ở P2 trước khi thêm nghiệp vụ phiếu mượn/trả (rủi ro hồi quy cao hơn).
 
 ## Quy ước code
 
@@ -208,3 +274,45 @@ CRUD tài sản, lỗi 400/404/409 trả đúng, và — quan trọng nhất —
 `no_overlap_per_room` chặn đúng 2 booking APPROVED trùng giờ cùng phòng, cho qua nếu
 khác phòng/khác giờ/khác trạng thái**, test trực tiếp bằng INSERT SQL vì chưa có
 Booking API ở P0.
+
+## Kiểm thử đã làm cho P1 (qua Docker thật + trình duyệt thật, không suy đoán)
+
+**Backend (curl vào `docker compose` thật, port 8090):**
+- Nộp đơn công khai chặn đúng khi vi phạm lead-time (400, kèm thời điểm sớm nhất có
+  thể chọn), chặn đúng khi trùng lịch với đơn đã APPROVED (409), chấp nhận khi hợp lệ
+  và trả về mã đơn `CRMS-YYYY-NNNNNN` sinh đúng thứ tự.
+- Upload file kèm đơn: `test.pdf` giả (chỉ đúng magic byte) lưu được nhưng khi xem qua
+  trình duyệt báo lỗi PDF hỏng (đúng — vì file giả); PDF thật (convert qua Gotenberg từ
+  `.txt`) preview hiển thị đúng nội dung trong iframe.
+- Duyệt/từ chối/hủy đơn đổi đúng trạng thái, ghi đúng lịch sử `approvals`; duyệt lại
+  đơn đã quyết định bị chặn (400); duyệt đơn trùng giờ với đơn đã APPROVED khác bị chặn
+  bởi chính ràng buộc DB (`DataIntegrityViolationException` → 409 thân thiện).
+- Gợi ý phòng thay thế trả đúng danh sách phòng còn trống, đủ sức chứa, sắp xếp theo
+  sức chứa tăng dần.
+- Email: pipeline `@Async` chạy và ghi `email_logs` đúng (status FAILED vì SMTP test
+  trỏ vào host giả — đúng hành vi mong đợi, không phải bug).
+- Cấu hình: đọc theo nhóm, ghi (PUT) áp dụng ngay cho lần validate tiếp theo; endpoint
+  gửi mail thử trả 502 kèm thông báo rõ ràng khi SMTP không tới được (không phải 500).
+- Người dùng: tạo tài khoản OFFICER, xác nhận **RBAC hoạt động đúng** — OFFICER bị chặn
+  403 ở `/users` (chỉ ADMIN) và ở `/bookings/{id}/approve` (chỉ ADMIN/APPROVER).
+- Lịch công khai ẩn đúng tên đơn vị (chỉ hiện "Đã đặt"/"Chờ duyệt"), lịch nội bộ hiện
+  đầy đủ; `calendar.ics` sinh đúng định dạng VEVENT.
+- Signed URL preview: fetch không kèm header Authorization vẫn trả 200 (đúng thiết kế);
+  token bị sửa/giả trả 403.
+
+**Frontend (thao tác thật qua trình duyệt, không phải test giả lập):**
+- Luồng đăng ký công khai đầy đủ: vào trang chủ → chọn phòng → điền form (đơn vị,
+  người liên hệ, ngày/giờ, thiết bị mượn thêm, upload file) → submit → hiện đúng mã
+  đơn vừa sinh → tra cứu lại bằng mã + email đúng thông tin.
+- Phát hiện và sửa bug thật: trang công khai gọi nhầm API admin (403) — xem bẫy #8.
+- Đăng nhập admin → hàng đợi duyệt đơn hiện đúng 3 đơn với đúng trạng thái/màu →
+  vào chi tiết → duyệt một đơn → trạng thái đổi ngay trên UI.
+- Xem file đính kèm inline: bấm "Xem" → hiện đúng PDF trong iframe (sau khi sửa bug
+  X-Frame-Options — xem bẫy #11); bấm "Tải về" tải file qua blob (vì endpoint tải cần
+  JWT, không dùng được `<a href>` trực tiếp).
+- Trang Cấu hình: load đúng giá trị hiện tại vào form, lưu thành công, thấy toast xác
+  nhận. Trang Người dùng: danh sách đúng, tạo/sửa/đặt lại mật khẩu hoạt động.
+- Lịch công khai và lịch nội bộ (FullCalendar) hiển thị đúng tiếng Việt, đúng sự kiện,
+  chuyển view tháng/tuần/danh sách mượt.
+- Test qua `docker compose` thật ở cổng 8092 sau khi build lại image (không chỉ Vite
+  dev server) — xác nhận nginx proxy `/api/` và toàn bộ luồng trên hoạt động y hệt.
