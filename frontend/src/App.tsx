@@ -7,6 +7,8 @@ import BookingDetailPage from "./pages/admin/BookingDetailPage";
 import CalendarAdminPage from "./pages/admin/CalendarAdminPage";
 import ConfigPage from "./pages/admin/ConfigPage";
 import UsersPage from "./pages/admin/UsersPage";
+import ReportsPage from "./pages/admin/ReportsPage";
+import AuditLogPage from "./pages/admin/AuditLogPage";
 import LandingPage from "./pages/public/LandingPage";
 import RoomsPublicPage from "./pages/public/RoomsPublicPage";
 import RoomDetailPublicPage from "./pages/public/RoomDetailPublicPage";
@@ -46,6 +48,7 @@ export default function App() {
           <Route path="bookings" element={<BookingsQueuePage />} />
           <Route path="bookings/:bookingId" element={<BookingDetailPage />} />
           <Route path="calendar" element={<CalendarAdminPage />} />
+          <Route path="reports" element={<ReportsPage />} />
           <Route
             path="config"
             element={
@@ -59,6 +62,14 @@ export default function App() {
             element={
               <RequireRole roles={["ADMIN"]}>
                 <UsersPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="audit-logs"
+            element={
+              <RequireRole roles={["ADMIN"]}>
+                <AuditLogPage />
               </RequireRole>
             }
           />

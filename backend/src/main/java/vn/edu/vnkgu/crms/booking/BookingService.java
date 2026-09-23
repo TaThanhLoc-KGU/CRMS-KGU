@@ -7,6 +7,7 @@ import vn.edu.vnkgu.crms.booking.dto.BookingPublicStatusDto;
 import vn.edu.vnkgu.crms.booking.dto.BookingSubmitRequest;
 import vn.edu.vnkgu.crms.booking.dto.BookingSummaryDto;
 import vn.edu.vnkgu.crms.booking.dto.RoomSuggestionDto;
+import vn.edu.vnkgu.crms.audit.AuditService;
 import vn.edu.vnkgu.crms.common.ApiException;
 import vn.edu.vnkgu.crms.common.ConflictException;
 import vn.edu.vnkgu.crms.common.NotFoundException;
@@ -64,6 +65,7 @@ public class BookingService {
     private final FileValidator fileValidator;
     private final PreviewConversionService previewConversionService;
     private final MailService mailService;
+    private final AuditService auditService;
 
     public BookingService(BookingRepository bookingRepository, RoomRepository roomRepository,
                            SetupStyleRepository setupStyleRepository,
@@ -71,7 +73,8 @@ public class BookingService {
                            ApprovalRepository approvalRepository, BookingCodeGenerator codeGenerator,
                            SchedulingRulesService schedulingRulesService, ConfigService configService,
                            StorageService storageService, FileValidator fileValidator,
-                           PreviewConversionService previewConversionService, MailService mailService) {
+                           PreviewConversionService previewConversionService, MailService mailService,
+                           AuditService auditService) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
         this.setupStyleRepository = setupStyleRepository;
@@ -80,6 +83,7 @@ public class BookingService {
         this.codeGenerator = codeGenerator;
         this.schedulingRulesService = schedulingRulesService;
         this.configService = configService;
+        this.auditService = auditService;
         this.storageService = storageService;
         this.fileValidator = fileValidator;
         this.previewConversionService = previewConversionService;
@@ -165,31 +169,61 @@ public class BookingService {
         return BookingDto.from(getEntity(id));
     }
 
+    /**
+     * Multi-level approval: {@code booking.require_approval_levels} (default 1) says
+     * how many APPROVED decisions are needed before the booking itself flips to
+     * APPROVED. Each call records one more level; short of the required count, the
+     * booking goes to UNDER_REVIEW (still in {@link #DECIDABLE}, so the next approver
+     * can act on it) instead of finalizing. A single REJECTED at any level ends the
+     * whole chain immediately — there's no "some levels rejected, some approved" state.
+     */
     @Transactional
     public BookingDto approve(Long id, String comment, User approver) {
         Booking booking = getEntity(id);
         ensureDecidable(booking);
-        booking.setStatus(BookingStatus.APPROVED);
-        booking.setDecidedAt(Instant.now());
-        try {
-            bookingRepository.saveAndFlush(booking);
-        } catch (DataIntegrityViolationException ex) {
-            // The EXCLUDE constraint on bookings caught a genuine race: two pending
-            // requests for the same room/time both reached "approve" before either
-            // committed. This is the DB-level safety net; the pre-check in submit()
-            // only catches conflicts against *already*-approved bookings at submit time.
-            throw new ConflictException("Phòng đã được duyệt cho một đơn khác trùng thời gian này — không thể duyệt đơn này nữa.");
-        }
+
+        int requiredLevels = configService.getInt("booking.require_approval_levels", 1);
+        long approvedSoFar = booking.getApprovals().stream()
+                .filter(a -> a.getDecision() == Approval.Decision.APPROVED).count();
+        int level = (int) approvedSoFar + 1;
+        boolean isFinalLevel = level >= requiredLevels;
 
         Approval approval = new Approval();
         approval.setBooking(booking);
-        approval.setLevel(1);
+        approval.setLevel(level);
         approval.setApprover(approver);
         approval.setDecision(Approval.Decision.APPROVED);
         approval.setComment(comment);
-        approvalRepository.save(approval);
 
-        mailService.sendTemplateAsync("APPROVED", booking.getContactEmail(), mailVariables(booking), booking.getId());
+        if (isFinalLevel) {
+            booking.setStatus(BookingStatus.APPROVED);
+            booking.setDecidedAt(Instant.now());
+            try {
+                bookingRepository.saveAndFlush(booking);
+            } catch (DataIntegrityViolationException ex) {
+                // The EXCLUDE constraint on bookings caught a genuine race: two pending
+                // requests for the same room/time both reached "approve" before either
+                // committed. This is the DB-level safety net; the pre-check in submit()
+                // only catches conflicts against *already*-approved bookings at submit time.
+                throw new ConflictException("Phòng đã được duyệt cho một đơn khác trùng thời gian này — không thể duyệt đơn này nữa.");
+            }
+        } else {
+            booking.setStatus(BookingStatus.UNDER_REVIEW);
+            bookingRepository.save(booking);
+        }
+        approvalRepository.save(approval);
+        // booking.getApprovals() was already lazy-loaded above (for approvedSoFar) and
+        // Hibernate won't silently re-query it just because a new row was inserted
+        // through a separate repository call — without this, BookingDto.from(booking)
+        // below would serialize the stale pre-insert list, missing this approval.
+        booking.getApprovals().add(approval);
+
+        auditService.log(approver, "BOOKING_APPROVE_LEVEL_" + level, "Booking", booking.getId(),
+                Map.of("finalized", isFinalLevel, "comment", comment == null ? "" : comment));
+
+        if (isFinalLevel) {
+            mailService.sendTemplateAsync("APPROVED", booking.getContactEmail(), mailVariables(booking), booking.getId());
+        }
         return BookingDto.from(booking);
     }
 
@@ -197,17 +231,22 @@ public class BookingService {
     public BookingDto reject(Long id, String reason, User approver) {
         Booking booking = getEntity(id);
         ensureDecidable(booking);
+        long approvedSoFar = booking.getApprovals().stream()
+                .filter(a -> a.getDecision() == Approval.Decision.APPROVED).count();
         booking.setStatus(BookingStatus.REJECTED);
         booking.setDecidedAt(Instant.now());
         bookingRepository.save(booking);
 
         Approval approval = new Approval();
         approval.setBooking(booking);
-        approval.setLevel(1);
+        approval.setLevel((int) approvedSoFar + 1);
         approval.setApprover(approver);
         approval.setDecision(Approval.Decision.REJECTED);
         approval.setComment(reason);
         approvalRepository.save(approval);
+        booking.getApprovals().add(approval); // see approve() — same stale-collection fix
+
+        auditService.log(approver, "BOOKING_REJECT", "Booking", booking.getId(), Map.of("reason", reason));
 
         Map<String, String> vars = mailVariables(booking);
         vars.put("ly_do", reason);
@@ -216,7 +255,7 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingDto cancel(Long id, String reason) {
+    public BookingDto cancel(Long id, String reason, User actor) {
         Booking booking = getEntity(id);
         if (!CANCELLABLE.contains(booking.getStatus())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Không thể hủy đơn ở trạng thái hiện tại");
@@ -224,6 +263,22 @@ public class BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelReason(reason);
         bookingRepository.save(booking);
+        auditService.log(actor, "BOOKING_CANCEL", "Booking", booking.getId(), Map.of("reason", reason));
+        return BookingDto.from(booking);
+    }
+
+    /** "Nghiệm thu xong" — the final step in the state diagram (spec §8.1), after the
+     * return slip's item conditions have been recorded. */
+    @Transactional
+    public BookingDto close(Long id, User actor) {
+        Booking booking = getEntity(id);
+        if (booking.getStatus() != BookingStatus.RETURNED) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Chỉ có thể nghiệm thu đơn đã trả phòng (trạng thái hiện tại: " + booking.getStatus() + ")");
+        }
+        booking.setStatus(BookingStatus.CLOSED);
+        bookingRepository.save(booking);
+        auditService.log(actor, "BOOKING_CLOSE", "Booking", booking.getId(), Map.of());
         return BookingDto.from(booking);
     }
 

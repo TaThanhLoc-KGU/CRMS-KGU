@@ -12,12 +12,13 @@ import {
   message,
   Breadcrumb,
 } from "antd";
-import { ArrowLeftOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, PlusOutlined, EditOutlined, DeleteOutlined, DownloadOutlined } from "@ant-design/icons";
 import { getRoom, type RoomStatus } from "../../api/rooms";
 import {
   ASSET_CONDITION_LABEL,
   createAsset,
   deleteAsset,
+  exportAssetsByRoom,
   listAssetsByRoom,
   updateAsset,
   type Asset,
@@ -125,16 +126,21 @@ export default function RoomDetailPage() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           {t.assets.title}
         </Typography.Title>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            setEditingAsset(null);
-            setModalOpen(true);
-          }}
-        >
-          {t.assets.addAsset}
-        </Button>
+        <Space>
+          <Button icon={<DownloadOutlined />} onClick={() => room && exportAssetsByRoom(room.id, room.code)}>
+            Xuất Excel
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setEditingAsset(null);
+              setModalOpen(true);
+            }}
+          >
+            {t.assets.addAsset}
+          </Button>
+        </Space>
       </Space>
 
       <Table<Asset>

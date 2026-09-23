@@ -19,6 +19,7 @@ import { CheckOutlined, CloseOutlined, DownloadOutlined, EyeOutlined } from "@an
 import {
   approveBooking,
   cancelBooking,
+  closeBooking,
   downloadAttachment,
   getAttachmentPreviewUrl,
   getBooking,
@@ -28,6 +29,7 @@ import {
   type BookingStatus,
 } from "../../api/bookings";
 import { extractErrorMessage, API_ORIGIN } from "../../api/client";
+import HandoverSection from "../../components/HandoverSection";
 
 const STATUS_LABEL: Record<BookingStatus, { text: string; color: string }> = {
   SUBMITTED: { text: "Đã tiếp nhận", color: "blue" },
@@ -99,6 +101,15 @@ export default function BookingDetailPage() {
       message.success("Đã hủy đơn");
       setCancelModalOpen(false);
       setCancelReason("");
+      invalidate();
+    },
+    onError: (err) => message.error(extractErrorMessage(err)),
+  });
+
+  const closeMutation = useMutation({
+    mutationFn: () => closeBooking(id),
+    onSuccess: () => {
+      message.success("Đã nghiệm thu, hoàn tất đơn");
       invalidate();
     },
     onError: (err) => message.error(extractErrorMessage(err)),
@@ -201,6 +212,8 @@ export default function BookingDetailPage() {
             )}
           />
 
+          <HandoverSection bookingId={id} bookingStatus={booking.status} onChanged={invalidate} />
+
           {booking.approvals.length > 0 && (
             <>
               <Typography.Title level={5}>Lịch sử duyệt</Typography.Title>
@@ -245,6 +258,11 @@ export default function BookingDetailPage() {
             {CANCELLABLE.includes(booking.status) && (
               <Button block onClick={() => setCancelModalOpen(true)}>
                 Hủy đơn
+              </Button>
+            )}
+            {booking.status === "RETURNED" && (
+              <Button type="primary" block loading={closeMutation.isPending} onClick={() => closeMutation.mutate()}>
+                Nghiệm thu, hoàn tất đơn
               </Button>
             )}
             <Button block loading={isFetchingSuggestions} onClick={() => fetchSuggestions()}>

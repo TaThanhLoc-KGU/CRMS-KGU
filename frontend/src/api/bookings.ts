@@ -184,6 +184,11 @@ export async function cancelBooking(id: number, reason: string): Promise<Booking
   return data;
 }
 
+export async function closeBooking(id: number): Promise<Booking> {
+  const { data } = await apiClient.post<Booking>(`/bookings/${id}/close`, {});
+  return data;
+}
+
 export async function suggestRooms(id: number): Promise<RoomSuggestion[]> {
   const { data } = await apiClient.get<RoomSuggestion[]>(`/bookings/${id}/suggest-rooms`);
   return data;

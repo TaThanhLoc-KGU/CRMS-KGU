@@ -66,8 +66,14 @@ public class BookingController {
     }
 
     @PostMapping("/{id}/cancel")
-    public BookingDto cancel(@PathVariable Long id, @Valid @RequestBody ReasonRequest request) {
-        return bookingService.cancel(id, request.reason());
+    public BookingDto cancel(@PathVariable Long id, @Valid @RequestBody ReasonRequest request,
+                              @AuthenticationPrincipal CrmsUserPrincipal principal) {
+        return bookingService.cancel(id, request.reason(), principal.getUser());
+    }
+
+    @PostMapping("/{id}/close")
+    public BookingDto close(@PathVariable Long id, @AuthenticationPrincipal CrmsUserPrincipal principal) {
+        return bookingService.close(id, principal.getUser());
     }
 
     @GetMapping("/{id}/suggest-rooms")

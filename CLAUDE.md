@@ -6,16 +6,20 @@ thay đổi phạm vi hoặc luồng nghiệp vụ.
 
 ## Trạng thái hiện tại
 
-**P0 + P1 — hoàn thành.** P0: CRUD Phòng + tài sản. P1 (MVP đặt phòng): trang công khai
-đăng ký mượn phòng (upload văn bản, kiểm tra lead-time/giờ làm việc/ngày lễ, kiểm tra
-trùng lịch), trang admin duyệt/từ chối/hủy đơn với xem file đính kèm inline, lịch công
-khai + nội bộ (FullCalendar) + feed iCal, email tự động (nhận đơn/duyệt/từ chối/nhắc
-lịch), module cấu hình đọc/ghi qua UI, quản lý người dùng nội bộ (RBAC 3 vai trò), gợi ý
-phòng thay thế khi trùng lịch. Toàn bộ đã test qua Docker thật + trình duyệt thật, không
-phải suy đoán — xem "Kiểm thử đã làm cho P1" bên dưới.
+**P0 + P1 + P2 — hoàn thành.** P0: CRUD Phòng + tài sản. P1 (MVP đặt phòng): trang công
+khai đăng ký mượn phòng (upload văn bản, kiểm tra lead-time/giờ làm việc/ngày lễ, kiểm
+tra trùng lịch), trang admin duyệt/từ chối/hủy đơn với xem file đính kèm inline, lịch
+công khai + nội bộ (FullCalendar) + feed iCal, email tự động, cấu hình qua UI, quản lý
+người dùng (RBAC 3 vai trò), gợi ý phòng thay thế. P2 (phiếu & báo cáo): phiếu mượn/trả
+phòng in PDF kèm mã QR (tự nạp CSVC từ phòng, đối chiếu tình trạng khi trả), báo cáo
+thống kê (tần suất theo phòng, theo đơn vị, thời gian xử lý trung bình) + xuất Excel,
+xuất Excel kiểm kê tài sản theo phòng, nhật ký kiểm toán (audit log) cho các hành động
+quan trọng, **duyệt đa cấp thật sự** (đọc `booking.require_approval_levels`, không còn
+hardcode 1 cấp). Toàn bộ đã test qua Docker thật + trình duyệt thật, không phải suy đoán
+— xem "Kiểm thử đã làm cho P1"/"cho P2" bên dưới.
 
-Đang làm: P2 (phiếu mượn/trả + PDF/QR, báo cáo thống kê, audit log, duyệt đa cấp) và P3
-(nâng cao). Xem "Lộ trình" trong spec §17.
+Chưa làm: P3 (nâng cao — QR check-in thật, Zalo OA, SSO/AD, digital signage, waitlist
+thật). Xem "Lộ trình" trong spec §17 và mục "Việc chưa làm" bên dưới.
 
 ## Ngăn xếp công nghệ
 
@@ -28,6 +32,10 @@ phải suy đoán — xem "Kiểm thử đã làm cho P1" bên dưới.
 | Frontend | React + Vite + TypeScript | React 19, Vite 7 |
 | UI kit | Ant Design | 5.x |
 | Data fetching | @tanstack/react-query | 5.x |
+| Lịch | @fullcalendar/{core,react,daygrid,timegrid,list} | 6.1.21 (ghim cứng — xem bẫy #12) |
+| PDF phiếu | OpenPDF | 3.0.5 (groupId `com.github.librepdf`, package `org.openpdf.text` — xem bẫy #13) |
+| QR code | ZXing (`com.google.zxing:core`/`javase`) | 3.5.4 |
+| Excel | Apache POI (`poi-ooxml`) | 5.5.1 |
 | CSDL | PostgreSQL | 16 (image chính thức trong docker-compose) |
 
 **Vì sao các phiên bản này:** Spring Initializr's `bootVersion` metadata trả về id
@@ -35,6 +43,16 @@ dạng `4.1.1.RELEASE` nhưng artifact thật trên Maven Central là `4.1.1` (k
 `.RELEASE` — quy ước đổi từ Boot 3.x). Nếu thấy lỗi
 `Non-resolvable parent POM ... 4.x.x.RELEASE`, đó là nguyên nhân — sửa lại version
 trong `backend/pom.xml`, đừng đoán ngược lại thêm `.RELEASE`.
+
+**Jackson trong Spring Boot 4 là Jackson 3** (`tools.jackson.*`, groupId `tools.jackson.core`)
+— KHÔNG phải Jackson 2 cổ điển (`com.fasterxml.jackson.*`) mà hầu hết tài liệu/code mẫu
+trên mạng vẫn giả định. Nếu `@Autowired`/constructor-inject một
+`com.fasterxml.jackson.databind.ObjectMapper`, Spring báo "no bean found" dù project rõ
+ràng là ứng dụng web — vì Spring chỉ tạo bean `tools.jackson.databind.ObjectMapper`.
+`com.fasterxml.jackson.*` chỉ còn tồn tại trong classpath vì `jjwt-jackson` (thư viện
+JWT) kéo theo, không liên quan gì tới Spring. Luôn import `tools.jackson.databind.*`
+cho bất cứ chỗ nào cần `ObjectMapper`/Jackson API trực tiếp trong code — xem
+`AuditService` để có ví dụ đã chạy đúng.
 
 ## Cấu trúc thư mục
 
@@ -53,17 +71,26 @@ crms-kgu/
 │       ├── security/             # User, Role, JWT filter/service, AuthController, UserController (admin)
 │       ├── mail/                 # EmailTemplate, EmailLog, MailService (JavaMailSender + {{var}} substitution)
 │       ├── room/                 # Room, RoomImage, SetupStyle, CRUD + PublicRoomController
-│       ├── asset/                # Asset (tài sản/thiết bị trong phòng), CRUD
-│       └── booking/              # Booking, BookingAttachment/Equipment, Approval, EquipmentCatalog,
-│                                  # WorkingHours/PublicHoliday, SchedulingRulesService, BookingService,
-│                                  # ReminderScheduler, PublicBookingController, BookingController (admin)
+│       ├── asset/                # Asset (tài sản/thiết bị trong phòng), CRUD + export Excel kiểm kê
+│       ├── booking/              # Booking, BookingAttachment/Equipment, Approval, EquipmentCatalog,
+│       │                          # WorkingHours/PublicHoliday, SchedulingRulesService, BookingService
+│       │                          # (duyệt đa cấp), ReminderScheduler, PublicBookingController,
+│       │                          # BookingController, CalendarController (admin)
+│       ├── handover/             # HandoverSlip/HandoverItem, HandoverService (mượn/trả, tự nạp CSVC
+│       │                          # từ phòng), HandoverSlipPdfService (OpenPDF), QrCodeGenerator (ZXing)
+│       ├── report/                # ReportService (thống kê theo phòng/đơn vị, xuất Excel qua POI)
+│       └── audit/                 # AuditLog, AuditService (gọi thủ công tại từng service, không AOP)
 │   └── src/main/resources/
 │       ├── application.yml
+│       ├── fonts/                # DejaVuSans.ttf — nhúng vào PDF để hiện đúng tiếng Việt (OpenPDF
+│       │                          # không có font Unicode sẵn); xem HandoverSlipPdfService
 │       └── db/migration/        # V1__init, V2__seed, V3__email_templates, V4__booking_reminders
 ├── frontend/
 │   └── src/
-│       ├── api/                  # 1 file/domain: rooms, assets, bookings, config, catalog, users, emailTemplates
+│       ├── api/                  # 1 file/domain: rooms, assets, bookings, config, catalog, users,
+│       │                          # emailTemplates, handover, reports, audit
 │       ├── layouts/              # AdminLayout (sau đăng nhập) và PublicLayout (trang công khai) — tách biệt
+│       ├── components/           # HandoverSection.tsx (nhúng vào BookingDetailPage), RequireRole, v.v.
 │       └── pages/{public,admin}  # public/ = không cần đăng nhập, admin/ = sau RequireAuth
 └── deploy/
     ├── docker-compose.yml       # postgres, gotenberg, backend, frontend(nginx)
@@ -72,11 +99,6 @@ crms-kgu/
     ├── nginx.conf
     └── .env.example
 ```
-
-`handover` (phiếu mượn/trả) và `report` (báo cáo) trong đặc tả gốc **chưa được tạo** —
-đó là P2. Bảng CSDL tương ứng (`handover_slips`, `handover_items`, `audit_logs`) đã có
-sẵn từ `V1__init.sql` vì Flyway quản lý schema độc lập với việc entity Java đã tồn tại
-hay chưa.
 
 ## Quy ước bắt buộc (không đổi khi làm phase sau)
 
@@ -186,6 +208,53 @@ hay chưa.
     lỗi hoặc mismatch), và kiểm tra `npm view @fullcalendar/<plugin> versions` cho
     TỪNG gói trước khi ghim version mới.
 
+### Bẫy đã gặp khi làm P2
+
+13. **OpenPDF đổi package từ `com.lowagie.text` sang `org.openpdf.text` ở bản 3.x.**
+    Mọi hướng dẫn/code mẫu OpenPDF trên mạng (kể cả kiến thức huấn luyện của model) đều
+    dùng `com.lowagie.text.*` — đúng cho OpenPDF 1.x nhưng bản `3.0.5` (bản mới nhất khi
+    làm P2) đã đổi hẳn namespace. Biết được nhờ giải nén jar thật
+    (`unzip -l openpdf-3.0.5.jar | grep .class`) thay vì đoán theo tài liệu cũ — luôn
+    làm vậy khi thêm một thư viện PDF/report mới, đừng tin blind theo memory.
+14. **`ObjectMapper` không tự inject được — xem mục "Jackson trong Spring Boot 4"
+    ở bảng Ngăn xếp công nghệ phía trên.** Đây là bẫy quan trọng nhất trong toàn bộ P2:
+    lỗi "no bean of type com.fasterxml.jackson.databind.ObjectMapper" xuất hiện ngay ở
+    lần khởi động đầu tiên của `AuditService`, dễ khiến người không biết cứ loay hoay
+    tìm cách "định nghĩa thêm bean" — trong khi bean ĐÃ có sẵn, chỉ là khác package.
+15. **OpenPDF không có font Unicode/tiếng Việt sẵn.** Font mặc định (Helvetica...) chỉ
+    có bảng mã Latin cơ bản, chữ có dấu sẽ ra ô trống hoặc ký tự lạ. Đã nhúng
+    `DejaVuSans.ttf` (giấy phép tự do, tải từ GitHub release chính thức của dự án
+    dejavu-fonts, KHÔNG phải từ repo source — repo source chỉ có file `.sfd` cần build)
+    vào `resources/fonts/`, load bằng
+    `BaseFont.createFont("DejaVuSans.ttf", IDENTITY_H, EMBEDDED, true, fontBytes, null)`
+    (đọc qua `ClassPathResource` thành `byte[]`, không dùng path hệ thống file — để chạy
+    đúng cả khi đã đóng gói thành JAR trong container). **Bẫy phụ:** `pdftotext` (xpdf)
+    trích xuất ra ký tự `�` lởm cho toàn bộ chữ có dấu dù PDF hiển thị hoàn toàn đúng
+    khi mở bằng trình đọc thật (đã xác minh qua PDF.js) — đây là hạn chế của xpdf với
+    CMap Identity-H + font nhúng subset, không phải lỗi PDF. Đừng dùng `pdftotext` để
+    kiểm tra PDF có tiếng Việt đúng hay chưa; phải mở bằng trình đọc PDF thật.
+16. **`@OneToMany(mappedBy=...)` bị "cứng" (stale) trong session sau khi lazy-load lần
+    đầu — bẫy tương tự #3/#9 nhưng ở dạng khác.** Trong `BookingService.approve()`,
+    code đọc `booking.getApprovals()` để tính `approvedSoFar` (kích hoạt lazy-load lần
+    đầu, danh sách rỗng hoặc có N phần tử tại thời điểm đó), rồi tạo `Approval` mới và
+    lưu qua `approvalRepository.save(approval)` — persist trực tiếp, đúng cách, không
+    sai. Nhưng vì KHÔNG gọi `booking.getApprovals().add(approval)`, khi
+    `BookingDto.from(booking)` đọc lại collection đó ở cuối method, Hibernate trả về
+    đúng cái danh sách ĐÃ CACHE trong session (từ lần lazy-load đầu), thiếu approval
+    vừa thêm — dù dữ liệu trong DB hoàn toàn đúng. Phát hiện được nhờ test kịch bản
+    duyệt 2 cấp thật (không phải 1 cấp mặc định) qua UI thật, thấy "Lịch sử duyệt" chỉ
+    hiện cấp 1 sau khi đã duyệt cấp 2. Fix: thêm `booking.getApprovals().add(approval)`
+    ngay sau khi save, ở cả `approve()` lẫn `reject()`. **Quy tắc chung rút ra:** bất cứ
+    khi nào code vừa ĐỌC một collection `@OneToMany` (dù chỉ để đếm/lọc) vừa GHI thêm
+    phần tử mới qua repository riêng trong CÙNG method, phải đồng bộ tay vào collection
+    in-memory nếu response sau đó còn đọc lại nó — Hibernate không tự làm việc này.
+17. **`window.open()` gọi sau `await` bị trình duyệt chặn popup âm thầm** (không throw
+    lỗi, không log gì) vì không còn được tính là phản hồi trực tiếp của một cú click.
+    Xảy ra ở nút "Xem/in PDF" (`openSlipPdf` trong `api/handover.ts`) — code cũ
+    `await fetch(...)` rồi mới `window.open(blobUrl)`. Fix: mở tab trắng
+    (`window.open("", "_blank")`) NGAY LẬP TỨC, đồng bộ, trước khi `await` bất cứ gì,
+    giữ tham chiếu tab đó, rồi set `tab.location.href = blobUrl` sau khi fetch xong.
+
 ## Chạy dự án
 
 ### Cách nhanh nhất — Docker Compose
@@ -221,32 +290,30 @@ npm install
 npm run dev
 ```
 
-## Việc chưa làm (cố ý, để P2/P3 xử lý)
+## Việc chưa làm (cố ý, để P3 xử lý — xem spec §16)
 
-- **Phiếu mượn/trả phòng** (`handover_slips`/`handover_items` đã có bảng, chưa có
-  entity/API): in PDF + QR khi phòng đã APPROVED → cấp phiếu (SLIP_ISSUED) → bàn giao
-  (IN_USE) → trả (RETURNED). Đây là P2.
-- **Báo cáo/thống kê** (`/reports/usage`) và **audit log** (`audit_logs` đã có bảng,
-  chưa ghi gì vào đó) — P2. Khi làm audit log, cân nhắc AOP/interceptor ghi tự động ở
-  tầng service thay vì gọi thủ công rải rác từng chỗ.
-- **Duyệt đa cấp thật sự** — bảng `approvals.level` đã có sẵn, `BookingService.approve()`
-  hiện luôn ghi `level=1` và chuyển thẳng sang APPROVED sau đúng 1 lần duyệt (khớp với
-  default `booking.require_approval_levels=1`). Khi làm đa cấp, cần thêm state
-  `UNDER_REVIEW` chuyển tiếp giữa các cấp và logic "đã đủ số cấp chưa" — chưa có ở P1.
-- Reminder scheduler (`ReminderScheduler`, chạy mỗi 15 phút) mới xử lý
-  `REMIND_BEFORE`/`REMIND_RETURN`; chưa có UI xem lịch sử gửi ngoài bảng `email_logs`
-  thô — cân nhắc thêm màn hình xem log email ở P2 nếu cần tra soát.
-- QR check-in/out, Zalo OA, SSO/AD, digital signage, recurring/waitlist thật sự (P3) —
-  xem spec §16. Trong đó **waitlist hiện chỉ là "vẫn chấp nhận nộp đơn khi trùng lịch
-  nếu `booking.on_conflict=WAITLIST`"**, không có hàng đợi/tự thông báo khi trống chỗ.
-- Bundle frontend production build ~1.7MB (gzip ~540KB) sau khi thêm FullCalendar —
-  Vite vẫn cảnh báo "chunk lớn hơn 500KB". Chưa code-split; cân nhắc `dynamic import()`
-  cho trang Lịch (`CalendarPublicPage`/`CalendarAdminPage`, nặng nhất) nếu bundle size
-  trở thành vấn đề thật.
-- Vẫn chưa có test tự động (unit/integration). Logic quan trọng nhất
-  (`SchedulingRulesService`, chống trùng lịch) đã được kiểm thử **thủ công đầy đủ**
-  qua Docker thật (xem "Kiểm thử đã làm cho P1") nhưng chưa có test tự động hoá lại —
-  nên làm sớm ở P2 trước khi thêm nghiệp vụ phiếu mượn/trả (rủi ro hồi quy cao hơn).
+- **QR check-in/out thật** — mã QR trên phiếu hiện chỉ mã hoá số phiếu (`slipNo`) để
+  tra cứu thủ công; chưa có luồng "quét QR → tự động chuyển trạng thái" (cần một
+  endpoint public-nhưng-có-xác-thực-riêng kiểu chữ ký giống `PreviewTokenService`,
+  hoặc một mã QR/token riêng không trùng với số phiếu in trên giấy).
+- **Zalo OA, SSO/Active Directory, digital signage** — chưa có dòng code nào, cần hạ
+  tầng/thông tin xác thực bên ngoài (Zalo OA app, AD server) mới làm được, không thể tự
+  triển khai đầy đủ trong môi trường dev.
+- **Waitlist thật sự** — hiện `booking.on_conflict=WAITLIST` chỉ nghĩa là "vẫn chấp
+  nhận nộp đơn dù trùng lịch với đơn đã duyệt khác", không có hàng đợi ưu tiên hay tự
+  thông báo khi phòng trống trở lại.
+- **Đăng ký định kỳ (recurring booking)** — chưa có, mỗi đơn vẫn là một lần đăng ký rời.
+- Reminder scheduler (`ReminderScheduler`, chạy mỗi 15 phút) mới gửi email
+  `REMIND_BEFORE`/`REMIND_RETURN`; chưa có UI xem lại lịch sử gửi ngoài trang Nhật ký
+  kiểm toán (không phải `email_logs` — hai bảng khác nhau, xem "Bẫy" nếu nhầm lẫn).
+- Bundle frontend production build ~1.7MB (gzip ~545KB) — Vite vẫn cảnh báo "chunk lớn
+  hơn 500KB" do Ant Design + FullCalendar. Chưa code-split; cân nhắc `dynamic import()`
+  cho trang Lịch nếu bundle size trở thành vấn đề thật.
+- Vẫn chưa có test tự động (unit/integration) cho bất kỳ phase nào. Toàn bộ logic quan
+  trọng (chống trùng lịch, duyệt đa cấp, sinh PDF/QR, báo cáo) đã được kiểm thử **thủ
+  công đầy đủ** qua Docker thật + trình duyệt thật (xem hai mục "Kiểm thử đã làm" bên
+  dưới) nhưng chưa có test tự động — nên làm trước khi tiếp tục thêm tính năng P3, vì
+  từ giờ bề mặt code đã đủ lớn để hồi quy âm thầm là rủi ro thật.
 
 ## Quy ước code
 
@@ -316,3 +383,50 @@ Booking API ở P0.
   chuyển view tháng/tuần/danh sách mượt.
 - Test qua `docker compose` thật ở cổng 8092 sau khi build lại image (không chỉ Vite
   dev server) — xác nhận nginx proxy `/api/` và toàn bộ luồng trên hoạt động y hệt.
+
+## Kiểm thử đã làm cho P2 (qua Docker thật + trình duyệt thật, không suy đoán)
+
+**Backend:**
+- Lập phiếu mượn cho đơn APPROVED → tự nạp đúng toàn bộ tài sản của phòng (đã thêm 2
+  tài sản test vào phòng, phiếu tạo ra đúng 2 dòng với `conditionBefore` lấy đúng từ
+  `assets.condition`); booking chuyển đúng sang `SLIP_ISSUED`.
+- Lập phiếu trả cho đơn `SLIP_ISSUED` → copy đúng danh sách từ phiếu mượn gần nhất;
+  booking chuyển đúng sang `RETURNED`. Thử lập phiếu mượn/trả sai trạng thái (VD lập
+  phiếu trả khi chưa có phiếu mượn) bị chặn đúng với thông báo rõ ràng.
+- `PATCH /slips/{id}/items` ghi đúng `conditionAfter`/`note` cho từng dòng, chuyển
+  slip sang `COMPLETED`. `POST /bookings/{id}/close` chỉ cho phép từ `RETURNED`, gọi
+  lại lần 2 bị chặn (400) đúng như spec.
+- **PDF phiếu mượn/trả**: sinh ra file PDF hợp lệ (xác minh bằng `file` — "PDF document,
+  version 2.0"), mở qua PDF.js trong trình duyệt để xem trực quan — chữ tiếng Việt có
+  dấu, tiêu đề, bảng CSVC, mã QR đều hiển thị đúng hoàn toàn. Phát hiện `pdftotext`
+  (xpdf) trích xuất text bị lỗi `�` dù hiển thị đúng — xác định đây là hạn chế công cụ
+  trích xuất (CMap Identity-H), không phải lỗi PDF thật, bằng cách so sánh với kết quả
+  hiển thị thật qua PDF.js.
+- **Duyệt đa cấp**: đặt `booking.require_approval_levels=2`, duyệt lần 1 → đúng
+  `UNDER_REVIEW` (chưa APPROVED), duyệt lần 2 (có thể bởi người duyệt khác) → đúng
+  `APPROVED`, lịch sử duyệt (`approvals`) hiện đủ cả 2 cấp với đúng comment mỗi cấp
+  (sau khi sửa bẫy #16 — trước đó cấp 2 bị thiếu trong response dù đã lưu đúng vào DB).
+- **Báo cáo**: `/reports/usage` tổng hợp đúng số đơn/giờ sử dụng theo phòng, tỷ lệ
+  duyệt theo đơn vị, thời gian xử lý trung bình — đối chiếu tay với dữ liệu test đã
+  biết trước, khớp chính xác. Xuất Excel (báo cáo dùng phòng + kiểm kê tài sản theo
+  phòng) trả đúng `Content-Type` của `.xlsx`.
+- **Audit log**: mọi hành động duyệt/từ chối/hủy/đóng đơn, lập phiếu mượn/trả đều ghi
+  đúng `action`, `entity`, `entityId`, `detail` (JSON), và `ip` (lấy đúng
+  `X-Forwarded-For` khi có, fallback về `remoteAddr`). Chỉ ADMIN truy cập được
+  `/audit-logs` — OFFICER/APPROVER bị 403 (đã kiểm bằng RBAC test tương tự P1).
+
+**Frontend:**
+- `HandoverSection` (nhúng trong trang chi tiết đơn) hiện đúng nút theo trạng thái đơn
+  (Lập phiếu mượn khi APPROVED, Lập phiếu trả khi SLIP_ISSUED, ẩn cả hai khi đã có đủ
+  phiếu) — test qua thao tác thật: điền form, submit, thấy toast + slip mới xuất hiện
+  ngay không cần tải lại trang.
+- Nút "Xem/in PDF" gọi đúng endpoint (network request 200 xác nhận), phát hiện và sửa
+  bẫy #17 (popup bị chặn) — xác minh fetch thành công qua network log dù không thể xác
+  nhận trực quan tab mới mở được do giới hạn sandbox của công cụ test trình duyệt
+  (không phải hành vi của trình duyệt thật).
+- Trang Báo cáo: chọn khoảng ngày, số liệu tổng quan + hai bảng (theo phòng, theo đơn
+  vị) hiển thị đúng khớp với dữ liệu đã tạo trong lúc test backend.
+- Trang Nhật ký kiểm toán: danh sách hiện đúng toàn bộ audit log đã ghi, đúng thứ tự
+  thời gian, chi tiết JSON đọc được.
+- Test lại toàn bộ qua `docker compose` thật ở cổng 8092 (build lại image sau khi xong
+  code) — không chỉ Vite dev server.

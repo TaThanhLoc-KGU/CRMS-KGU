@@ -5,9 +5,10 @@ sử dụng trang quản trị của hệ thống Quản lý Phòng, Trung tâm 
 Kiên Giang. Không cần biết lập trình để đọc tài liệu này.
 
 > **Phạm vi hiện tại:** hệ thống đã có đầy đủ *quản lý phòng/tài sản*, *cổng công khai
-> đăng ký mượn phòng*, *duyệt/từ chối đơn*, *lịch phòng*, *email tự động*, *cấu hình*
-> và *quản lý người dùng*. Phần **phiếu mượn/trả in PDF** và **báo cáo thống kê** chưa
-> có — xem mục "Sắp có" ở cuối tài liệu.
+> đăng ký mượn phòng*, *duyệt/từ chối đơn (kể cả duyệt nhiều cấp)*, *lịch phòng*,
+> *email tự động*, *cấu hình*, *quản lý người dùng*, *phiếu mượn/trả in PDF kèm mã QR*,
+> *báo cáo thống kê* và *nhật ký kiểm toán*. Các tính năng nâng cao (quét QR tự động,
+> Zalo, đăng nhập một lần qua tài khoản trường...) chưa có — xem mục "Sắp có" ở cuối.
 
 ---
 
@@ -157,7 +158,60 @@ ký, hoặc báo mất mã đơn.
 Hệ thống cũng tự động gửi email **nhắc lịch** trước giờ sử dụng (mặc định 24 giờ,
 chỉnh được ở mục Cấu hình) cho các đơn đã duyệt — không cần cán bộ nhắc tay.
 
-## 7. Cấu hình hệ thống (chỉ dành cho Quản trị viên)
+**Đơn cần nhiều người duyệt?** Nếu quản trị viên bật cấu hình "Số cấp duyệt" lớn hơn 1,
+một đơn cần được duyệt đủ số lần đó (bởi một hoặc nhiều người duyệt khác nhau) mới
+chính thức chuyển sang "Đã duyệt" — trước đó đơn ở trạng thái "Đang xem xét" và người
+duyệt tiếp theo vẫn thấy nút Duyệt/Từ chối bình thường. Mục "Lịch sử duyệt" trong trang
+chi tiết đơn liệt kê đầy đủ ai đã duyệt ở cấp nào, lúc nào.
+
+## 7. Lập phiếu mượn/trả phòng
+
+Sau khi đơn đã **Đã duyệt**, vào trang chi tiết đơn để lập phiếu — mục **Phiếu
+mượn/trả** nằm ngay dưới danh sách văn bản đính kèm.
+
+### 7.1. Lập phiếu mượn (khi bàn giao phòng)
+
+1. Bấm **Lập phiếu mượn**, điền tên người mượn thực tế đến nhận phòng (có thể khác
+   người đăng ký ban đầu), đơn vị, số điện thoại, ghi chú nếu cần.
+2. Hệ thống **tự động nạp toàn bộ tài sản/thiết bị của phòng** (đã khai báo ở mục
+   "Quản lý tài sản") vào phiếu, kèm tình trạng hiện tại của từng món — không cần
+   nhập tay danh sách CSVC.
+3. Bấm **Xem/in PDF** để mở bản PDF chính thức (có mã QR, ô ký tên) — in ra cho hai bên
+   ký trực tiếp khi bàn giao.
+4. Đơn tự chuyển sang trạng thái "Đã lập phiếu".
+
+### 7.2. Lập phiếu trả (khi nhận lại phòng)
+
+1. Khi đơn vị trả phòng, vào lại trang chi tiết đơn, bấm **Lập phiếu trả**.
+2. Hệ thống tự sao chép đúng danh sách CSVC từ phiếu mượn để đối chiếu — không phải
+   nhập lại.
+3. Với từng món, chọn **Tình trạng khi trả** (Nguyên vẹn / Hư hỏng / Thiếu) và ghi chú
+   nếu có hư hỏng/thiếu hụt, rồi bấm **Lưu tình trạng khi trả**.
+4. Bấm **Xem/in PDF** để in phiếu trả có đầy đủ đối chiếu trước–sau.
+5. Đơn chuyển sang trạng thái "Đã trả phòng".
+
+### 7.3. Nghiệm thu, hoàn tất đơn
+
+Sau khi đã ghi nhận tình trạng trả phòng, bấm **Nghiệm thu, hoàn tất đơn** (ở khung
+Thao tác) để đóng đơn hẳn. Đơn chuyển sang "Đã hoàn tất" — đây là bước cuối cùng trong
+vòng đời một đơn mượn phòng.
+
+## 8. Báo cáo, thống kê & xuất Excel
+
+Vào mục **Báo cáo** ở menu bên trái (xem được bởi mọi vai trò đăng nhập).
+
+- Chọn khoảng thời gian ở góc trên để xem: tổng số đơn, số đã duyệt/từ chối, thời gian
+  xử lý trung bình (từ lúc nộp đến lúc có quyết định).
+- Bảng **Tần suất sử dụng theo phòng**: phòng nào được dùng nhiều nhất, tổng số giờ sử
+  dụng — hữu ích khi cần biết phòng nào đang quá tải.
+- Bảng **Thống kê theo đơn vị**: đơn vị nào đăng ký nhiều, tỷ lệ đơn được duyệt.
+- Bấm **Xuất Excel** để tải file `.xlsx` chứa đầy đủ hai bảng trên, dùng để báo cáo cấp
+  trên hoặc lưu trữ.
+
+Ngoài ra, ở trang **Quản lý tài sản** của từng phòng cũng có thể xuất riêng danh sách
+kiểm kê CSVC của phòng đó ra Excel.
+
+## 9. Cấu hình hệ thống (chỉ dành cho Quản trị viên)
 
 Vào mục **Cấu hình** ở menu bên trái (chỉ tài khoản ADMIN nhìn thấy mục này). Các
 nhóm cấu hình:

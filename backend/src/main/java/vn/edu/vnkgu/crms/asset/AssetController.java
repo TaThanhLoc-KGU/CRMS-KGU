@@ -4,7 +4,9 @@ import vn.edu.vnkgu.crms.asset.dto.AssetDto;
 import vn.edu.vnkgu.crms.asset.dto.AssetRequest;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +34,15 @@ public class AssetController {
     @GetMapping("/rooms/{roomId}/assets")
     public List<AssetDto> listByRoom(@PathVariable Long roomId) {
         return assetService.listByRoom(roomId);
+    }
+
+    @GetMapping("/rooms/{roomId}/assets/export")
+    public ResponseEntity<byte[]> exportByRoom(@PathVariable Long roomId) {
+        byte[] excel = assetService.exportByRoom(roomId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=kiem-ke-tai-san.xlsx")
+                .body(excel);
     }
 
     @PostMapping("/rooms/{roomId}/assets")

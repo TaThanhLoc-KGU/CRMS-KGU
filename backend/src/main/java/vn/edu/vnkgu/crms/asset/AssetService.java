@@ -6,9 +6,15 @@ import vn.edu.vnkgu.crms.common.ConflictException;
 import vn.edu.vnkgu.crms.common.NotFoundException;
 import vn.edu.vnkgu.crms.room.Room;
 import vn.edu.vnkgu.crms.room.RoomRepository;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 
 @Service
@@ -63,6 +69,49 @@ public class AssetService {
     @Transactional
     public void delete(Long id) {
         assetRepository.delete(getEntity(id));
+    }
+
+    /** F-ROOM-04: kiểm kê nhanh — xuất danh sách tài sản theo phòng ra Excel. */
+    public byte[] exportByRoom(Long roomId) {
+        Room room = roomRepository.findById(roomId).orElseThrow(() -> NotFoundException.of("Phòng", roomId));
+        List<Asset> assets = assetRepository.findByRoomIdOrderByNameAsc(roomId);
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Kiem ke - " + room.getCode());
+            Row header = sheet.createRow(0);
+            String[] columns = {"Mã tài sản", "Tên tài sản", "Danh mục", "Số lượng", "Đơn vị tính",
+                    "Tình trạng", "Năm mua", "Di động", "Ghi chú"};
+            for (int i = 0; i < columns.length; i++) {
+                header.createCell(i).setCellValue(columns[i]);
+            }
+            int r = 1;
+            for (Asset asset : assets) {
+                Row row = sheet.createRow(r++);
+                int c = 0;
+                row.createCell(c++).setCellValue(asset.getAssetCode());
+                row.createCell(c++).setCellValue(asset.getName());
+                row.createCell(c++).setCellValue(nullToEmpty(asset.getCategory()));
+                row.createCell(c++).setCellValue(asset.getQuantity());
+                row.createCell(c++).setCellValue(nullToEmpty(asset.getUnit()));
+                row.createCell(c++).setCellValue(asset.getCondition());
+                row.createCell(c++).setCellValue(asset.getPurchaseYear() != null ? asset.getPurchaseYear() : 0);
+                row.createCell(c++).setCellValue(asset.isMovable() ? "Có" : "Không");
+                row.createCell(c).setCellValue(nullToEmpty(asset.getNote()));
+            }
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Không thể xuất kiểm kê tài sản", e);
+        }
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     private Asset getEntity(Long id) {

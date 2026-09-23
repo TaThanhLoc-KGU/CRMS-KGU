@@ -11,9 +11,11 @@ sau này ở [`CLAUDE.md`](CLAUDE.md).
 Stack: Spring Boot 4 (Java 21) + PostgreSQL 16 ở backend, React + Vite + TypeScript +
 Ant Design ở frontend, Flyway lo schema, JWT lo auth, Docker Compose lo deploy.
 
-Đã xong: quản lý phòng/tài sản, đăng ký mượn phòng công khai + duyệt/từ chối, lịch
-(FullCalendar + iCal), email tự động, cấu hình qua UI, quản lý người dùng. Đang làm:
-phiếu mượn/trả + báo cáo (P2).
+Đã xong: quản lý phòng/tài sản, đăng ký mượn phòng công khai + duyệt/từ chối (kể cả
+duyệt đa cấp), lịch (FullCalendar + iCal), email tự động, cấu hình qua UI, quản lý
+người dùng, phiếu mượn/trả in PDF kèm QR, báo cáo thống kê + xuất Excel, nhật ký kiểm
+toán. Còn lại: các tính năng nâng cao (QR check-in thật, Zalo, SSO/AD...) — xem P3
+trong `docs/spec.md`.
 
 ## Chạy thử nhanh nhất — Docker Compose
 

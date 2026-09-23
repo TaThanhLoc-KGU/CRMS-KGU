@@ -56,3 +56,15 @@ export async function updateAsset(id: number, request: AssetRequest): Promise<As
 export async function deleteAsset(id: number): Promise<void> {
   await apiClient.delete(`/assets/${id}`);
 }
+
+export async function exportAssetsByRoom(roomId: number, roomCode: string): Promise<void> {
+  const response = await apiClient.get(`/rooms/${roomId}/assets/export`, { responseType: "blob" });
+  const url = window.URL.createObjectURL(response.data as Blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `kiem-ke-${roomCode}.xlsx`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}

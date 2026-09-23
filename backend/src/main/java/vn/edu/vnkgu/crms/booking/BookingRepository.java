@@ -61,4 +61,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
               and b.endTime <= :now and b.endTime > :cutoff
             """)
     List<Booking> findNeedingReturnReminder(@Param("now") Instant now, @Param("cutoff") Instant cutoff);
+
+    List<Booking> findBySubmittedAtBetween(Instant from, Instant to);
 }
