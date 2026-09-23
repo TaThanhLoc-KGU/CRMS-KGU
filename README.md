@@ -13,9 +13,11 @@ Ant Design ở frontend, Flyway lo schema, JWT lo auth, Docker Compose lo deploy
 
 Đã xong: quản lý phòng/tài sản, đăng ký mượn phòng công khai + duyệt/từ chối (kể cả
 duyệt đa cấp), lịch (FullCalendar + iCal), email tự động, cấu hình qua UI, quản lý
-người dùng, phiếu mượn/trả in PDF kèm QR, báo cáo thống kê + xuất Excel, nhật ký kiểm
-toán. Còn lại: các tính năng nâng cao (QR check-in thật, Zalo, SSO/AD...) — xem P3
-trong `docs/spec.md`.
+người dùng, phiếu mượn/trả in PDF kèm QR (quét để check-in/check-out thật, không chỉ
+để tra cứu), báo cáo thống kê + xuất Excel, nhật ký kiểm toán, danh sách chờ khi phòng
+bận (tự báo email khi trống), đăng ký định kỳ (lặp hàng tuần), màn hình signage công
+khai (`/man-hinh`). Còn lại: Zalo OA, SSO/AD, và lắp màn hình signage vật lý — cần hạ
+tầng bên ngoài không có sẵn trong môi trường dev, xem P3 trong `docs/spec.md`.
 
 ## Chạy thử nhanh nhất — Docker Compose
 

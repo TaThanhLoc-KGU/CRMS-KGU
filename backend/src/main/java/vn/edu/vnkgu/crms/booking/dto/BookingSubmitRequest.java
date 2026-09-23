@@ -22,6 +22,12 @@ public record BookingSubmitRequest(
         String purpose,
         String extraRequirements,
         List<BookingEquipmentRequest> equipmentItems,
-        @AssertTrue(message = "Phải đồng ý nội quy sử dụng phòng") boolean agreeToTerms
+        @AssertTrue(message = "Phải đồng ý nội quy sử dụng phòng") boolean agreeToTerms,
+        /** Recurring bookings (spec §16 item 10): number of weekly occurrences
+         * starting at startTime/endTime, e.g. 4 = this week + 3 more weekly repeats.
+         * null or 1 = an ordinary one-off booking (unchanged behavior). */
+        @jakarta.validation.constraints.Min(value = 1, message = "Số lần lặp phải từ 1 trở lên")
+        @jakarta.validation.constraints.Max(value = 12, message = "Chỉ hỗ trợ lặp lại tối đa 12 tuần")
+        Integer repeatWeeks
 ) {
 }

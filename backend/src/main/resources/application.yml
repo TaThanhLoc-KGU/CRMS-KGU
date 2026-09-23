@@ -56,6 +56,12 @@ app:
   preview-token:
     secret: ${PREVIEW_TOKEN_SECRET:${JWT_SECRET:dev-only-secret-please-override-in-env-must-be-at-least-32-bytes-long}}
     ttl-minutes: ${PREVIEW_TOKEN_TTL_MINUTES:10}
+  handover-confirm-token:
+    secret: ${HANDOVER_CONFIRM_TOKEN_SECRET:${JWT_SECRET:dev-only-secret-please-override-in-env-must-be-at-least-32-bytes-long}}
+    ttl-days: ${HANDOVER_CONFIRM_TOKEN_TTL_DAYS:180}
+  # Absolute URL of the public frontend — embedded in QR codes (handover slip PDFs)
+  # and in emails, neither of which can use a relative path the way the SPA does.
+  public-base-url: ${PUBLIC_BASE_URL:http://localhost:5173}
 
 springdoc:
   swagger-ui:

@@ -50,6 +50,7 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       STORAGE_ROOT: /data/storage
       GOTENBERG_URL: http://gotenberg:3000
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8092}
     volumes:
       - backend_storage:/data/storage
     ports:

@@ -6,20 +6,26 @@ thay đổi phạm vi hoặc luồng nghiệp vụ.
 
 ## Trạng thái hiện tại
 
-**P0 + P1 + P2 — hoàn thành.** P0: CRUD Phòng + tài sản. P1 (MVP đặt phòng): trang công
-khai đăng ký mượn phòng (upload văn bản, kiểm tra lead-time/giờ làm việc/ngày lễ, kiểm
-tra trùng lịch), trang admin duyệt/từ chối/hủy đơn với xem file đính kèm inline, lịch
-công khai + nội bộ (FullCalendar) + feed iCal, email tự động, cấu hình qua UI, quản lý
-người dùng (RBAC 3 vai trò), gợi ý phòng thay thế. P2 (phiếu & báo cáo): phiếu mượn/trả
-phòng in PDF kèm mã QR (tự nạp CSVC từ phòng, đối chiếu tình trạng khi trả), báo cáo
-thống kê (tần suất theo phòng, theo đơn vị, thời gian xử lý trung bình) + xuất Excel,
-xuất Excel kiểm kê tài sản theo phòng, nhật ký kiểm toán (audit log) cho các hành động
-quan trọng, **duyệt đa cấp thật sự** (đọc `booking.require_approval_levels`, không còn
-hardcode 1 cấp). Toàn bộ đã test qua Docker thật + trình duyệt thật, không phải suy đoán
-— xem "Kiểm thử đã làm cho P1"/"cho P2" bên dưới.
+**P0 + P1 + P2 + phần lớn P3 — hoàn thành.** P0: CRUD Phòng + tài sản. P1 (MVP đặt
+phòng): trang công khai đăng ký mượn phòng (upload văn bản, kiểm tra lead-time/giờ làm
+việc/ngày lễ, kiểm tra trùng lịch), trang admin duyệt/từ chối/hủy đơn với xem file đính
+kèm inline, lịch công khai + nội bộ (FullCalendar) + feed iCal, email tự động, cấu hình
+qua UI, quản lý người dùng (RBAC 3 vai trò), gợi ý phòng thay thế. P2 (phiếu & báo cáo):
+phiếu mượn/trả phòng in PDF kèm mã QR (tự nạp CSVC từ phòng, đối chiếu tình trạng khi
+trả), báo cáo thống kê + xuất Excel, xuất Excel kiểm kê tài sản theo phòng, nhật ký kiểm
+toán, **duyệt đa cấp thật sự**. P3 (nâng cao, xem spec §16): **QR check-in/out thật**
+(quét mã trên phiếu mượn → booking tự chuyển `IN_USE` — lần đầu tiên trạng thái này
+được dùng thật; xem bẫy #18), **waitlist thật sự** (bảng `waitlist_entries` riêng, tự
+gửi email khi đơn đang chiếm chỗ bị hủy — không còn "vẫn nhận đơn dù trùng lịch" như P1),
+**đăng ký định kỳ** (lặp lại hàng tuần, mỗi lần lặp là một booking độc lập, tự chia
+CREATED/WAITLISTED/REJECTED theo từng lần), và **màn hình signage** (`/man-hinh`, public,
+tự làm mới, không có trong `PublicLayout`). Toàn bộ đã test qua Docker thật + trình
+duyệt thật, không phải suy đoán — xem các mục "Kiểm thử đã làm cho P1/P2/P3" bên dưới.
 
-Chưa làm: P3 (nâng cao — QR check-in thật, Zalo OA, SSO/AD, digital signage, waitlist
-thật). Xem "Lộ trình" trong spec §17 và mục "Việc chưa làm" bên dưới.
+Chưa làm (P3 phần còn lại, cần hạ tầng ngoài không có ở môi trường dev): Zalo OA,
+SSO/Active Directory, lắp màn hình signage vật lý ngoài cửa phòng (trang web đã có, chỉ
+thiếu phần cứng/vận hành thực tế). Xem "Lộ trình" trong spec §17 và mục "Việc chưa làm"
+bên dưới.
 
 ## Ngăn xếp công nghệ
 
@@ -77,18 +83,21 @@ crms-kgu/
 │       │                          # (duyệt đa cấp), ReminderScheduler, PublicBookingController,
 │       │                          # BookingController, CalendarController (admin)
 │       ├── handover/             # HandoverSlip/HandoverItem, HandoverService (mượn/trả, tự nạp CSVC
-│       │                          # từ phòng), HandoverSlipPdfService (OpenPDF), QrCodeGenerator (ZXing)
+│       │                          # từ phòng), HandoverSlipPdfService (OpenPDF), QrCodeGenerator (ZXing),
+│       │                          # HandoverConfirmTokenService + HandoverConfirmController (QR check-in/out)
 │       ├── report/                # ReportService (thống kê theo phòng/đơn vị, xuất Excel qua POI)
-│       └── audit/                 # AuditLog, AuditService (gọi thủ công tại từng service, không AOP)
+│       ├── audit/                 # AuditLog, AuditService (gọi thủ công tại từng service, không AOP)
+│       └── waitlist/              # WaitlistEntry, WaitlistService (hàng chờ + tự báo khi trống)
 │   └── src/main/resources/
 │       ├── application.yml
 │       ├── fonts/                # DejaVuSans.ttf — nhúng vào PDF để hiện đúng tiếng Việt (OpenPDF
 │       │                          # không có font Unicode sẵn); xem HandoverSlipPdfService
-│       └── db/migration/        # V1__init, V2__seed, V3__email_templates, V4__booking_reminders
+│       └── db/migration/        # V1__init, V2__seed, V3__email_templates, V4__booking_reminders,
+│                                  # V5__p3_qr_checkin_waitlist_recurrence
 ├── frontend/
 │   └── src/
 │       ├── api/                  # 1 file/domain: rooms, assets, bookings, config, catalog, users,
-│       │                          # emailTemplates, handover, reports, audit
+│       │                          # emailTemplates, handover, reports, audit, waitlist
 │       ├── layouts/              # AdminLayout (sau đăng nhập) và PublicLayout (trang công khai) — tách biệt
 │       ├── components/           # HandoverSection.tsx (nhúng vào BookingDetailPage), RequireRole, v.v.
 │       └── pages/{public,admin}  # public/ = không cần đăng nhập, admin/ = sau RequireAuth
@@ -255,6 +264,49 @@ crms-kgu/
     (`window.open("", "_blank")`) NGAY LẬP TỨC, đồng bộ, trước khi `await` bất cứ gì,
     giữ tham chiếu tab đó, rồi set `tab.location.href = blobUrl` sau khi fetch xong.
 
+### Bẫy đã gặp khi làm P3
+
+18. **QR check-in/out ở P2 chỉ mã hoá `slipNo` — không xác nhận được gì thật.** Quét mã
+    ra một chuỗi số phiếu, không có hành động nào chạy khi quét. Fix thật: QR giờ mã hoá
+    một URL công khai ký HMAC (`HandoverConfirmTokenService`, giống hệt pattern của
+    `PreviewTokenService` — token riêng, TTL riêng theo ngày chứ không theo phút, vì
+    phiếu in giấy có thể bị quét bất cứ lúc nào trong suốt vòng đời mượn/trả, không phải
+    vài phút như link preview). **Bẫy phụ quan trọng:** hai loại phiếu (BORROW/RETURN)
+    KHÔNG đối xứng khi confirm. Phiếu mượn tạo xong chỉ chuyển booking sang
+    `SLIP_ISSUED` (chưa `IN_USE`) — quét QR xác nhận mới thật sự chuyển sang `IN_USE`,
+    đây là lần đầu trạng thái này được dùng trong toàn bộ hệ thống kể từ khi định nghĩa
+    ở P0/P1. Còn phiếu trả đã tự chuyển booking sang `RETURNED` ngay khi TẠO phiếu (hành
+    vi P2 cũ, đã test kỹ, không đổi) — nên quét QR ở phiếu trả không chuyển trạng thái gì
+    thêm, chỉ ghi `confirmed_at`/`confirmed_ip` làm bằng chứng đã quét thật tại chỗ. Nếu
+    sau này ai đó "sửa cho đối xứng" bằng cách trì hoãn `RETURNED` tới lúc quét QUÉT, phải
+    kiểm tra lại toàn bộ luồng nghiệm thu (`BookingService.close()`, nút "Nghiệm thu" ở
+    `BookingDetailPage`) vì chúng đang giả định `RETURNED` đã xảy ra ngay khi có phiếu.
+19. **`no_overlap_per_room` (EXCLUDE constraint) chỉ áp dụng cho `status='APPROVED'`
+    — nghĩa là việc lặp một vòng lặp `submit()` nhiều lần trong CÙNG MỘT transaction
+    (đăng ký định kỳ) an toàn hơn tưởng tượng ban đầu.** Lo ngại đầu tiên khi làm
+    recurring booking: nếu một lần lặp trong vòng lặp bị `DataIntegrityViolationException`
+    từ constraint DB, Postgres sẽ "abort" toàn bộ transaction hiện tại (lỗi kiểu "current
+    transaction is aborted, commands ignored until end of transaction block"), khiến các
+    lần lặp SAU đó cũng fail dù code Java có catch exception. Nhưng vì booking mới luôn
+    tạo với status `SUBMITTED` (không phải `APPROVED`), INSERT của nó không bao giờ chạm
+    tới constraint này — constraint chỉ kích hoạt ở `BookingService.approve()`. Kết luận:
+    vòng lặp nhiều `submit()` trong 1 transaction AN TOÀN với thiết kế hiện tại, nhưng
+    nếu sau này approve() được gọi hàng loạt trong 1 transaction (chưa có, nhưng có thể
+    bị thêm nhầm), phải tách transaction riêng cho từng approve hoặc chấp nhận rollback
+    toàn bộ khi một cái xung đột.
+20. **`booking.on_conflict=WAITLIST` ở P1 KHÔNG phải waitlist thật — chỉ là "vẫn nhận
+    đơn dù trùng lịch".** Hai đơn `SUBMITTED` cùng giờ cùng phòng trông y hệt nhau trong
+    hàng đợi duyệt; ai duyệt trước thắng (nhờ constraint DB chặn ở bước approve), người
+    duyệt sau chỉ thấy lỗi 409 chung chung, không biết trước là mình sắp thua. Fix: tách
+    hẳn một bảng `waitlist_entries` — khi trùng lịch với một đơn ĐÃ APPROVED (không phải
+    trùng với đơn SUBMITTED khác) và cấu hình là WAITLIST, không tạo Booking cạnh tranh
+    nữa mà tạo một `WaitlistEntry` (không có state machine phức tạp, không cạnh tranh
+    duyệt). Khi đơn đang chiếm chỗ bị HỦY (chỉ hủy mới tính — đơn REJECTED chưa từng
+    APPROVED nên chưa từng thật sự chiếm chỗ), tự động email mọi entry đang WAITING
+    trùng khung giờ, chuyển sang NOTIFIED. Cố tình KHÔNG tự tạo booking hộ người chờ khi
+    trống — "tự báo khi trống" trong đặc tả nghĩa là auto-notify, không phải auto-book,
+    vì thông tin họ nhập lúc chờ có thể đã lỗi thời (đổi số người, đổi mục đích...).
+
 ## Chạy dự án
 
 ### Cách nhanh nhất — Docker Compose
@@ -290,19 +342,18 @@ npm install
 npm run dev
 ```
 
-## Việc chưa làm (cố ý, để P3 xử lý — xem spec §16)
+## Việc chưa làm (cố ý — cần hạ tầng ngoài không có ở môi trường dev)
 
-- **QR check-in/out thật** — mã QR trên phiếu hiện chỉ mã hoá số phiếu (`slipNo`) để
-  tra cứu thủ công; chưa có luồng "quét QR → tự động chuyển trạng thái" (cần một
-  endpoint public-nhưng-có-xác-thực-riêng kiểu chữ ký giống `PreviewTokenService`,
-  hoặc một mã QR/token riêng không trùng với số phiếu in trên giấy).
-- **Zalo OA, SSO/Active Directory, digital signage** — chưa có dòng code nào, cần hạ
-  tầng/thông tin xác thực bên ngoài (Zalo OA app, AD server) mới làm được, không thể tự
-  triển khai đầy đủ trong môi trường dev.
-- **Waitlist thật sự** — hiện `booking.on_conflict=WAITLIST` chỉ nghĩa là "vẫn chấp
-  nhận nộp đơn dù trùng lịch với đơn đã duyệt khác", không có hàng đợi ưu tiên hay tự
-  thông báo khi phòng trống trở lại.
-- **Đăng ký định kỳ (recurring booking)** — chưa có, mỗi đơn vẫn là một lần đăng ký rời.
+- **Zalo OA, SSO/Active Directory** — chưa có dòng code nào, cần thông tin xác thực bên
+  ngoài (Zalo OA app đã đăng ký, AD server thật của trường) mới làm được, không thể tự
+  triển khai đầy đủ trong môi trường dev. Nếu làm sau: Zalo OA có thể theo đúng pattern
+  của `MailService` (một "kênh gửi" song song, cùng bảng log kiểu `email_logs`); SSO/AD
+  cần thêm `AuthenticationProvider` mới bên cạnh `DaoAuthenticationProvider` hiện tại
+  trong `SecurityConfig`, ánh xạ nhóm AD sang 3 role hiện có.
+- **Màn hình signage vật lý ngoài cửa phòng** — trang web `/man-hinh` đã có (P3, public,
+  tự làm mới mỗi 30s, xem "Kiểm thử đã làm cho P3"), chỉ còn thiếu phần lắp đặt/vận hành
+  thực tế (mua màn hình, mount ngoài cửa từng phòng, trỏ trình duyệt kiosk vào URL) —
+  không phải việc của code nữa.
 - Reminder scheduler (`ReminderScheduler`, chạy mỗi 15 phút) mới gửi email
   `REMIND_BEFORE`/`REMIND_RETURN`; chưa có UI xem lại lịch sử gửi ngoài trang Nhật ký
   kiểm toán (không phải `email_logs` — hai bảng khác nhau, xem "Bẫy" nếu nhầm lẫn).
@@ -430,3 +481,48 @@ Booking API ở P0.
   thời gian, chi tiết JSON đọc được.
 - Test lại toàn bộ qua `docker compose` thật ở cổng 8092 (build lại image sau khi xong
   code) — không chỉ Vite dev server.
+
+## Kiểm thử đã làm cho P3 (qua Docker thật + trình duyệt thật, không suy đoán)
+
+**Backend (curl vào `docker compose` thật, port 8090):**
+- **Waitlist thật**: đặt `booking.on_conflict=WAITLIST`, nộp đơn trùng giờ với một đơn
+  đã APPROVED → đúng trả về `waitlisted:true` kèm `WaitlistEntryDto` (KHÔNG tạo Booking
+  cạnh tranh), status `WAITING`. Hủy đơn đang APPROVED chiếm chỗ → xác minh qua
+  `GET /waitlist` entry chuyển đúng sang `NOTIFIED` kèm `notifiedAt`; `email_logs` ghi
+  đúng một dòng `WAITLIST_FREED` gửi tới đúng email người chờ (status FAILED vì SMTP
+  test giả — đúng hành vi mong đợi, giống mọi email khác trong dự án này).
+- **Đăng ký định kỳ**: nộp 1 đơn với `repeatWeeks=4` → tạo đúng 4 booking độc lập, cùng
+  `recurrenceGroup` (UUID), lệch nhau đúng 7 ngày, mỗi đơn có mã (`code`) riêng và
+  `outcome=CREATED` riêng trong response.
+- **QR check-in/out thật**: tạo phiếu mượn cho đơn APPROVED → response có `confirmUrl`
+  trỏ đúng về `PUBLIC_BASE_URL` (khác `API_BASE_URL`, đã kiểm tra không bị lặp
+  `/api/v1`). Gọi `GET` rồi `POST` `/public/handover-confirm/{id}?token=...` (không kèm
+  header Authorization, mô phỏng đúng một điện thoại vừa quét QR) → đơn chuyển đúng từ
+  `SLIP_ISSUED` sang `IN_USE` (lần đầu tiên trạng thái này thật sự được set trong toàn
+  bộ hệ thống). Gọi `POST` lần 2 (xác nhận lại) → trả về `alreadyConfirmed:true`, không
+  lỗi, không đổi trạng thái thêm lần nữa (idempotent). Gọi với token bị sửa (`bad.token`)
+  → đúng 403.
+- **Digital signage**: `GET /public/signage` trả đúng danh sách toàn bộ 11 phòng ACTIVE
+  thật của KGU, đúng `occupied`/`occupiedUntil`/`nextStart` tính từ dữ liệu booking thật
+  đang có trong DB tại thời điểm gọi.
+
+**Frontend (thao tác thật qua trình duyệt, không phải test giả lập):**
+- Trang công khai `/booking/new`: tick "Lặp lại hàng tuần" → đúng hiện thêm ô "Số tuần
+  lặp lại" (mặc định 4, ẩn/hiện theo `Form.Item shouldUpdate`); nộp đơn thường vẫn ra
+  đúng màn hình thành công như P1/P2 (không đổi hành vi mặc định).
+- Trang xác nhận QR `/xac-nhan-phieu/:slipId?token=...` (đứng riêng, không có
+  `PublicLayout`): mở đúng bằng `confirmUrl` lấy từ API thật, hiện đúng "Đã xác nhận"
+  kèm thời điểm khi slip đã được xác nhận trước đó qua API.
+- Màn hình signage `/man-hinh` (đứng riêng, nền tối, chữ lớn, không có `PublicLayout`):
+  hiện đúng toàn bộ 11 phòng thật, đúng trạng thái TRỐNG/ĐANG HỌP, đồng hồ chạy thật.
+- Trang admin "Danh sách chờ" (`/admin/waitlist`, menu mới trong `AdminLayout`): mặc
+  định lọc `WAITING` (xác nhận qua network log gọi đúng
+  `GET /waitlist?status=WAITING`); đổi filter sang `NOTIFIED` qua gọi thẳng API bằng
+  JWT lấy từ `localStorage` (do công cụ test trình duyệt gặp giới hạn thao tác với
+  AntD `Select` trong phiên này) — xác nhận entry đã chuyển đúng trạng thái và dữ liệu
+  khớp với những gì test backend vừa tạo.
+- `HandoverSection` (trang chi tiết đơn): nút mới "Sao chép link xác nhận" và tag
+  "Đã xác nhận lúc .../Chưa quét QR xác nhận" hiển thị đúng theo `confirmedAt` của slip.
+- Test lại toàn bộ qua `docker compose` thật ở cổng 8092 sau khi build lại image (không
+  chỉ Vite dev server) — Flyway áp dụng đúng `V5__p3_qr_checkin_waitlist_recurrence.sql`
+  khi khởi động (log xác nhận "Successfully applied 1 migration ... now at version v5").

@@ -15,13 +15,16 @@ import {
   Alert,
   Table,
   Card,
+  List,
+  Tag,
+  Space,
 } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import dayjs, { type Dayjs } from "dayjs";
 import { listPublicRooms } from "../../api/rooms";
 import { apiClient, extractErrorMessage } from "../../api/client";
-import { submitBooking, type Booking, type BookingEquipmentItem } from "../../api/bookings";
+import { submitBooking, type BookingSubmitResult, type BookingEquipmentItem } from "../../api/bookings";
 
 interface SetupStyleOption {
   id: number;
@@ -47,6 +50,8 @@ interface FormValues {
   purpose?: string;
   extraRequirements?: string;
   agreeToTerms: boolean;
+  repeat?: boolean;
+  repeatWeeks?: number;
 }
 
 export default function BookingFormPage() {
@@ -55,7 +60,7 @@ export default function BookingFormPage() {
   const [form] = Form.useForm<FormValues>();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [equipmentQuantities, setEquipmentQuantities] = useState<Record<number, number>>({});
-  const [submittedBooking, setSubmittedBooking] = useState<Booking | null>(null);
+  const [submitResult, setSubmitResult] = useState<BookingSubmitResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { data: roomsPage } = useQuery({ queryKey: ["booking-form-rooms"], queryFn: () => listPublicRooms({ size: 100 }) });
@@ -93,12 +98,13 @@ export default function BookingFormPage() {
           extraRequirements: values.extraRequirements,
           equipmentItems,
           agreeToTerms: values.agreeToTerms,
+          repeatWeeks: values.repeat ? values.repeatWeeks : undefined,
         },
         fileList.map((f) => f.originFileObj as File).filter(Boolean),
       );
     },
-    onSuccess: (booking) => {
-      setSubmittedBooking(booking);
+    onSuccess: (result) => {
+      setSubmitResult(result);
       setErrorMessage(null);
     },
     onError: (err) => setErrorMessage(extractErrorMessage(err)),
@@ -109,7 +115,69 @@ export default function BookingFormPage() {
     return raw ? Number(raw) : undefined;
   }, [searchParams]);
 
-  if (submittedBooking) {
+  if (submitResult) {
+    if (submitResult.recurring) {
+      const occurrences = submitResult.occurrences ?? [];
+      const created = occurrences.filter((o) => o.outcome === "CREATED");
+      return (
+        <div style={{ maxWidth: 700, margin: "48px auto", padding: 24 }}>
+          <Result
+            status={created.length > 0 ? "success" : "warning"}
+            title="Đã xử lý đơn đăng ký định kỳ"
+            subTitle={`${created.length}/${occurrences.length} lần lặp được tạo đơn thành công. Xem chi tiết từng lần bên dưới.`}
+            extra={[
+              <Button key="home" onClick={() => navigate("/")}>
+                Về trang chủ
+              </Button>,
+            ]}
+          />
+          <List
+            bordered
+            dataSource={occurrences}
+            renderItem={(o) => (
+              <List.Item>
+                <Space direction="vertical" size={0} style={{ width: "100%" }}>
+                  <Space>
+                    <span>
+                      {new Date(o.startTime).toLocaleString("vi-VN")} - {new Date(o.endTime).toLocaleTimeString("vi-VN")}
+                    </span>
+                    {o.outcome === "CREATED" && <Tag color="green">Đã tạo đơn {o.booking?.code}</Tag>}
+                    {o.outcome === "WAITLISTED" && <Tag color="gold">Vào danh sách chờ</Tag>}
+                    {o.outcome === "REJECTED" && <Tag color="red">Không thể đặt</Tag>}
+                  </Space>
+                  {o.reason && <Typography.Text type="secondary">{o.reason}</Typography.Text>}
+                </Space>
+              </List.Item>
+            )}
+          />
+        </div>
+      );
+    }
+
+    if (submitResult.waitlisted) {
+      return (
+        <div style={{ maxWidth: 700, margin: "48px auto", padding: 24 }}>
+          <Result
+            status="info"
+            title="Phòng đang bận — đã thêm vào danh sách chờ"
+            subTitle={
+              <>
+                Khung giờ bạn chọn hiện đã có đơn khác được duyệt. Yêu cầu của quý đơn vị đã được ghi nhận vào danh
+                sách chờ; hệ thống sẽ tự động gửi email tới <b>{submitResult.waitlistEntry?.contactEmail}</b> nếu
+                khung giờ này trống trở lại, khi đó vui lòng đăng ký lại sớm.
+              </>
+            }
+            extra={[
+              <Button key="home" onClick={() => navigate("/")}>
+                Về trang chủ
+              </Button>,
+            ]}
+          />
+        </div>
+      );
+    }
+
+    const booking = submitResult.booking!;
     return (
       <div style={{ maxWidth: 700, margin: "48px auto", padding: 24 }}>
         <Result
@@ -117,13 +185,13 @@ export default function BookingFormPage() {
           title="Đã gửi đơn đăng ký thành công"
           subTitle={
             <>
-              Mã đơn của bạn là <b>{submittedBooking.code}</b>. Vui lòng lưu lại mã này (và email đã đăng ký) để
+              Mã đơn của bạn là <b>{booking.code}</b>. Vui lòng lưu lại mã này (và email đã đăng ký) để
               tra cứu trạng thái xử lý. Hệ thống cũng đã gửi email xác nhận tới{" "}
-              <b>{submittedBooking.contactEmail}</b>.
+              <b>{booking.contactEmail}</b>.
             </>
           }
           extra={[
-            <Button type="primary" key="lookup" onClick={() => navigate(`/lookup?code=${submittedBooking.code}`)}>
+            <Button type="primary" key="lookup" onClick={() => navigate(`/lookup?code=${booking.code}`)}>
               Tra cứu đơn này
             </Button>,
             <Button key="home" onClick={() => navigate("/")}>
@@ -198,6 +266,25 @@ export default function BookingFormPage() {
           rules={[{ required: true, message: "Vui lòng chọn khung giờ" }]}
         >
           <DatePicker.RangePicker picker="time" format="HH:mm" style={{ width: "100%" }} />
+        </Form.Item>
+
+        <Form.Item name="repeat" valuePropName="checked" style={{ marginBottom: 0 }}>
+          <Checkbox>Lặp lại hàng tuần (VD: sinh hoạt CLB, họp giao ban định kỳ)</Checkbox>
+        </Form.Item>
+
+        <Form.Item shouldUpdate={(prev, cur) => prev.repeat !== cur.repeat} style={{ marginBottom: 24 }} noStyle>
+          {({ getFieldValue }) =>
+            getFieldValue("repeat") && (
+              <Form.Item
+                name="repeatWeeks"
+                label="Số tuần lặp lại (kể cả tuần đầu)"
+                initialValue={4}
+                rules={[{ required: true, message: "Vui lòng nhập số tuần" }]}
+              >
+                <InputNumber min={2} max={12} style={{ width: "100%" }} />
+              </Form.Item>
+            )
+          }
         </Form.Item>
 
         <Form.Item name="expectedAttendees" label="Số người dự kiến">

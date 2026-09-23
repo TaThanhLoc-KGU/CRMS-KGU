@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Typography, Button, Space, Modal, Form, Input, Table, Tag, message } from "antd";
-import { FilePdfOutlined, PlusOutlined } from "@ant-design/icons";
+import { FilePdfOutlined, PlusOutlined, LinkOutlined } from "@ant-design/icons";
 import {
   createSlip,
   listSlipsByBooking,
@@ -104,6 +104,21 @@ export default function HandoverSection({ bookingId, bookingStatus, onChanged }:
             <Button size="small" icon={<FilePdfOutlined />} onClick={() => openSlipPdf(slip.id)}>
               Xem/in PDF
             </Button>
+            <Button
+              size="small"
+              icon={<LinkOutlined />}
+              onClick={() => {
+                navigator.clipboard.writeText(slip.confirmUrl);
+                message.success("Đã sao chép đường dẫn xác nhận (giống mã QR trên phiếu)");
+              }}
+            >
+              Sao chép link xác nhận
+            </Button>
+            {slip.confirmedAt ? (
+              <Tag color="green">Đã xác nhận lúc {new Date(slip.confirmedAt).toLocaleString("vi-VN")}</Tag>
+            ) : (
+              <Tag>Chưa quét QR xác nhận</Tag>
+            )}
           </Space>
 
           <Table<HandoverItem>

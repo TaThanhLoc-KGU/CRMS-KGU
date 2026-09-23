@@ -1,10 +1,11 @@
 package vn.edu.vnkgu.crms.booking;
 
-import vn.edu.vnkgu.crms.booking.dto.BookingDto;
 import vn.edu.vnkgu.crms.booking.dto.BookingPublicStatusDto;
 import vn.edu.vnkgu.crms.booking.dto.BookingSubmitRequest;
+import vn.edu.vnkgu.crms.booking.dto.BookingSubmitResultDto;
 import vn.edu.vnkgu.crms.booking.dto.CalendarEventDto;
 import vn.edu.vnkgu.crms.booking.dto.EquipmentCatalogDto;
+import vn.edu.vnkgu.crms.booking.dto.SignageRoomStatusDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -42,8 +43,8 @@ public class PublicBookingController {
 
     @PostMapping(value = "/bookings", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public BookingDto submit(@Valid @RequestPart("data") BookingSubmitRequest request,
-                              @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+    public BookingSubmitResultDto submit(@Valid @RequestPart("data") BookingSubmitRequest request,
+                                          @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         return bookingService.submit(request, files);
     }
 
@@ -72,5 +73,10 @@ public class PublicBookingController {
     @GetMapping("/equipments")
     public List<EquipmentCatalogDto> equipments() {
         return equipmentCatalogRepository.findByActiveTrue().stream().map(EquipmentCatalogDto::from).toList();
+    }
+
+    @GetMapping("/signage")
+    public List<SignageRoomStatusDto> signage() {
+        return bookingService.signageStatus();
     }
 }

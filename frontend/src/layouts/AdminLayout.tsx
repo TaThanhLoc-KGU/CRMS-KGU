@@ -8,6 +8,7 @@ import {
   TeamOutlined,
   BarChartOutlined,
   AuditOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -25,6 +26,7 @@ export default function AdminLayout() {
     { key: "rooms", path: "/admin/rooms", icon: <HomeOutlined />, label: "Quản lý phòng" },
     { key: "bookings", path: "/admin/bookings", icon: <FileDoneOutlined />, label: "Duyệt đơn" },
     { key: "calendar", path: "/admin/calendar", icon: <CalendarOutlined />, label: "Lịch nội bộ" },
+    { key: "waitlist", path: "/admin/waitlist", icon: <ClockCircleOutlined />, label: "Danh sách chờ" },
     { key: "reports", path: "/admin/reports", icon: <BarChartOutlined />, label: "Báo cáo" },
     ...(isAdmin
       ? [

@@ -28,7 +28,20 @@ export interface HandoverSlip {
   note?: string | null;
   status: HandoverStatus;
   createdAt: string;
+  confirmedAt?: string | null;
+  confirmUrl: string;
   items: HandoverItem[];
+}
+
+export interface HandoverConfirmInfo {
+  slipId: number;
+  type: HandoverType;
+  slipNo: string;
+  roomName: string;
+  bookingCode: string;
+  borrowerName: string;
+  alreadyConfirmed: boolean;
+  confirmedAt?: string | null;
 }
 
 export interface HandoverSlipRequest {
@@ -73,6 +86,22 @@ export async function updateSlipItems(id: number, items: HandoverItemUpdate[]): 
  * triggered this function, so browsers silently block it as a popup. Opening a blank
  * tab first (still inside the synchronous part of the click handler) and redirecting
  * it once the blob is ready avoids that. */
+/** Public — no JWT, called from the confirm page reached by scanning a slip's QR
+ * code. Authorization is the signed `token` query param, not a login session. */
+export async function getHandoverConfirmInfo(slipId: number, token: string): Promise<HandoverConfirmInfo> {
+  const { data } = await apiClient.get<HandoverConfirmInfo>(`/public/handover-confirm/${slipId}`, {
+    params: { token },
+  });
+  return data;
+}
+
+export async function confirmHandover(slipId: number, token: string): Promise<HandoverConfirmInfo> {
+  const { data } = await apiClient.post<HandoverConfirmInfo>(`/public/handover-confirm/${slipId}`, null, {
+    params: { token },
+  });
+  return data;
+}
+
 export async function openSlipPdf(id: number): Promise<void> {
   const tab = window.open("", "_blank");
   const response = await apiClient.get(`/slips/${id}/pdf`, { responseType: "blob" });

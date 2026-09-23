@@ -22,9 +22,11 @@ public record HandoverSlipDto(
         String note,
         HandoverStatus status,
         Instant createdAt,
+        Instant confirmedAt,
+        String confirmUrl,
         List<HandoverItemDto> items
 ) {
-    public static HandoverSlipDto from(HandoverSlip slip) {
+    public static HandoverSlipDto from(HandoverSlip slip, String confirmUrl) {
         return new HandoverSlipDto(
                 slip.getId(),
                 slip.getBooking().getId(),
@@ -40,6 +42,8 @@ public record HandoverSlipDto(
                 slip.getNote(),
                 slip.getStatus(),
                 slip.getCreatedAt(),
+                slip.getConfirmedAt(),
+                confirmUrl,
                 slip.getItems().stream().map(HandoverItemDto::from).toList());
     }
 }

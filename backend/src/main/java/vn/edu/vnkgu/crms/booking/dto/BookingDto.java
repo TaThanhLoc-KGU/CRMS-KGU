@@ -29,6 +29,7 @@ public record BookingDto(
         Instant decidedAt,
         String cancelReason,
         BookingSource source,
+        String recurrenceGroup,
         List<BookingAttachmentDto> attachments,
         List<BookingEquipmentDto> equipments,
         List<ApprovalDto> approvals
@@ -42,7 +43,7 @@ public record BookingDto(
                 b.getRequesterUnit(), b.getContactName(), b.getContactEmail(), b.getContactPhone(),
                 b.getStartTime(), b.getEndTime(), b.getExpectedAttendees(), b.getPurpose(),
                 b.getExtraRequirements(), b.getStatus(), b.getSubmittedAt(), b.getDecidedAt(),
-                b.getCancelReason(), b.getSource(),
+                b.getCancelReason(), b.getSource(), b.getRecurrenceGroup(),
                 b.getAttachments().stream().map(BookingAttachmentDto::from).toList(),
                 b.getEquipments().stream().map(BookingEquipmentDto::from).toList(),
                 b.getApprovals().stream().map(ApprovalDto::from).toList());

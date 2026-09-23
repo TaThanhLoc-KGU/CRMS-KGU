@@ -5,8 +5,11 @@ import vn.edu.vnkgu.crms.booking.dto.CalendarEventDto;
 import vn.edu.vnkgu.crms.booking.dto.BookingEquipmentRequest;
 import vn.edu.vnkgu.crms.booking.dto.BookingPublicStatusDto;
 import vn.edu.vnkgu.crms.booking.dto.BookingSubmitRequest;
+import vn.edu.vnkgu.crms.booking.dto.BookingSubmitResultDto;
 import vn.edu.vnkgu.crms.booking.dto.BookingSummaryDto;
+import vn.edu.vnkgu.crms.booking.dto.OccurrenceResultDto;
 import vn.edu.vnkgu.crms.booking.dto.RoomSuggestionDto;
+import vn.edu.vnkgu.crms.booking.dto.SignageRoomStatusDto;
 import vn.edu.vnkgu.crms.audit.AuditService;
 import vn.edu.vnkgu.crms.common.ApiException;
 import vn.edu.vnkgu.crms.common.ConflictException;
@@ -23,6 +26,8 @@ import vn.edu.vnkgu.crms.room.RoomStatus;
 import vn.edu.vnkgu.crms.room.SetupStyle;
 import vn.edu.vnkgu.crms.room.SetupStyleRepository;
 import vn.edu.vnkgu.crms.security.User;
+import vn.edu.vnkgu.crms.waitlist.WaitlistService;
+import vn.edu.vnkgu.crms.waitlist.dto.WaitlistEntryDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -36,11 +41,16 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -66,6 +76,7 @@ public class BookingService {
     private final PreviewConversionService previewConversionService;
     private final MailService mailService;
     private final AuditService auditService;
+    private final WaitlistService waitlistService;
 
     public BookingService(BookingRepository bookingRepository, RoomRepository roomRepository,
                            SetupStyleRepository setupStyleRepository,
@@ -74,7 +85,7 @@ public class BookingService {
                            SchedulingRulesService schedulingRulesService, ConfigService configService,
                            StorageService storageService, FileValidator fileValidator,
                            PreviewConversionService previewConversionService, MailService mailService,
-                           AuditService auditService) {
+                           AuditService auditService, WaitlistService waitlistService) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
         this.setupStyleRepository = setupStyleRepository;
@@ -88,10 +99,28 @@ public class BookingService {
         this.fileValidator = fileValidator;
         this.previewConversionService = previewConversionService;
         this.mailService = mailService;
+        this.waitlistService = waitlistService;
     }
 
+    /**
+     * A plain one-off submission is {@code repeatWeeks == null/1}: room/config are
+     * validated once, then {@link #submitOccurrence} runs exactly once and its
+     * result (created / waitlisted / rejected) is returned as-is.
+     * <p>
+     * A recurring submission ({@code repeatWeeks > 1}, spec §16 item 10) calls
+     * {@link #submitOccurrence} once per weekly repeat, all inside this single
+     * transaction — safe to do because a newly-submitted booking is always
+     * {@code SUBMITTED}, and {@code no_overlap_per_room} only ever fires for
+     * {@code APPROVED} rows (see V1__init.sql), so one occurrence hitting a
+     * business-rule conflict can never poison the DB transaction for the next one.
+     * Each occurrence independently ends up CREATED, WAITLISTED (room busy and
+     * {@code booking.on_conflict=WAITLIST}), or REJECTED (room busy and BLOCK, or a
+     * lead-time/working-hours violation for that particular date) — a recurring
+     * request is not all-or-nothing. Uploaded attachments are only stored against
+     * the first CREATED occurrence, not duplicated across the whole series.
+     */
     @Transactional
-    public BookingDto submit(BookingSubmitRequest request, List<MultipartFile> files) {
+    public BookingSubmitResultDto submit(BookingSubmitRequest request, List<MultipartFile> files) {
         Room room = roomRepository.findById(request.roomId())
                 .orElseThrow(() -> NotFoundException.of("Phòng", request.roomId()));
         if (room.getStatus() != RoomStatus.ACTIVE) {
@@ -101,13 +130,62 @@ public class BookingService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Hệ thống tạm ngừng nhận đăng ký công khai");
         }
 
-        schedulingRulesService.validate(room, request.startTime(), request.endTime());
-        checkConflict(room.getId(), request.startTime(), request.endTime());
-
         SetupStyle setupStyle = null;
         if (request.setupStyleId() != null) {
             setupStyle = setupStyleRepository.findById(request.setupStyleId())
                     .orElseThrow(() -> NotFoundException.of("Kiểu bố trí", request.setupStyleId()));
+        }
+
+        int repeatWeeks = request.repeatWeeks() != null ? request.repeatWeeks() : 1;
+        if (repeatWeeks <= 1) {
+            OccurrenceResultDto result = submitOccurrence(request, room, setupStyle,
+                    request.startTime(), request.endTime(), files, null, true);
+            return switch (result.outcome()) {
+                case "CREATED" -> BookingSubmitResultDto.ofBooking(result.booking());
+                case "WAITLISTED" -> BookingSubmitResultDto.ofWaitlist(result.waitlistEntry());
+                default -> throw new ConflictException(result.reason());
+            };
+        }
+
+        String recurrenceGroup = UUID.randomUUID().toString();
+        List<OccurrenceResultDto> occurrences = new ArrayList<>();
+        boolean filesAttached = false;
+        for (int i = 0; i < repeatWeeks; i++) {
+            Instant occStart = request.startTime().plus(7L * i, ChronoUnit.DAYS);
+            Instant occEnd = request.endTime().plus(7L * i, ChronoUnit.DAYS);
+            OccurrenceResultDto result = submitOccurrence(request, room, setupStyle, occStart, occEnd,
+                    filesAttached ? null : files, recurrenceGroup, false);
+            if ("CREATED".equals(result.outcome())) {
+                filesAttached = true;
+            }
+            occurrences.add(result);
+        }
+        return BookingSubmitResultDto.ofRecurring(occurrences);
+    }
+
+    /** One occurrence of submit() — see the class-level note on {@link #submit}. */
+    private OccurrenceResultDto submitOccurrence(BookingSubmitRequest request, Room room, SetupStyle setupStyle,
+                                                  Instant startTime, Instant endTime, List<MultipartFile> files,
+                                                  String recurrenceGroup, boolean throwOnRuleViolation) {
+        try {
+            schedulingRulesService.validate(room, startTime, endTime);
+        } catch (ApiException ex) {
+            if (throwOnRuleViolation) {
+                throw ex;
+            }
+            return OccurrenceResultDto.rejected(startTime, endTime, ex.getMessage());
+        }
+
+        boolean approvedConflict = !bookingRepository.findApprovedOverlapping(room.getId(), startTime, endTime).isEmpty();
+        if (approvedConflict) {
+            if ("WAITLIST".equals(configService.getString("booking.on_conflict", "BLOCK"))) {
+                WaitlistEntryDto entry = waitlistService.add(room, startTime, endTime, request.requesterUnit(),
+                        request.contactName(), request.contactEmail(), request.contactPhone(),
+                        request.expectedAttendees(), request.purpose());
+                return OccurrenceResultDto.waitlisted(startTime, endTime, entry);
+            }
+            return OccurrenceResultDto.rejected(startTime, endTime,
+                    "Phòng đã có đơn được duyệt trong khung giờ này. Vui lòng chọn thời gian hoặc phòng khác.");
         }
 
         Booking booking = new Booking();
@@ -118,13 +196,14 @@ public class BookingService {
         booking.setContactName(request.contactName());
         booking.setContactEmail(request.contactEmail());
         booking.setContactPhone(request.contactPhone());
-        booking.setStartTime(request.startTime());
-        booking.setEndTime(request.endTime());
+        booking.setStartTime(startTime);
+        booking.setEndTime(endTime);
         booking.setExpectedAttendees(request.expectedAttendees());
         booking.setPurpose(request.purpose());
         booking.setExtraRequirements(request.extraRequirements());
         booking.setStatus(BookingStatus.SUBMITTED);
         booking.setSource(BookingSource.PUBLIC);
+        booking.setRecurrenceGroup(recurrenceGroup);
         bookingRepository.save(booking);
 
         attachEquipment(booking, request.equipmentItems());
@@ -135,7 +214,7 @@ public class BookingService {
         bookingRepository.saveAndFlush(booking);
 
         mailService.sendTemplateAsync("RECEIVED", booking.getContactEmail(), mailVariables(booking), booking.getId());
-        return BookingDto.from(booking);
+        return OccurrenceResultDto.created(startTime, endTime, BookingDto.from(booking));
     }
 
     public BookingPublicStatusDto lookupPublic(String code, String email) {
@@ -260,10 +339,18 @@ public class BookingService {
         if (!CANCELLABLE.contains(booking.getStatus())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Không thể hủy đơn ở trạng thái hiện tại");
         }
+        boolean wasApproved = booking.getStatus() == BookingStatus.APPROVED;
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelReason(reason);
         bookingRepository.save(booking);
         auditService.log(actor, "BOOKING_CANCEL", "Booking", booking.getId(), Map.of("reason", reason));
+        if (wasApproved) {
+            // Only an APPROVED booking could have been blocking a waitlisted request in
+            // the first place (no_overlap_per_room, and findApprovedOverlapping, both
+            // only look at APPROVED rows) — cancelling anything earlier in the pipeline
+            // never froze a slot anyone else was actually locked out of.
+            waitlistService.notifyFreedSlot(booking.getRoom(), booking.getStartTime(), booking.getEndTime());
+        }
         return BookingDto.from(booking);
     }
 
@@ -295,6 +382,32 @@ public class BookingService {
                 .map(CalendarEventDto::from).toList();
     }
 
+    /** Digital signage screen (spec §16 item 12) — every ACTIVE room's current
+     * occupied/free status plus its next booking in the following 24h, for a TV
+     * outside the room or a lobby overview. Looks 24h ahead only: this is a live
+     * "right now" display, not another calendar view. */
+    public List<SignageRoomStatusDto> signageStatus() {
+        Instant now = Instant.now();
+        Instant windowEnd = now.plusSeconds(24L * 3600);
+        List<Booking> upcoming = bookingRepository.findForPublicCalendar(now, windowEnd, null);
+        Map<Long, List<Booking>> byRoom = upcoming.stream()
+                .collect(Collectors.groupingBy(b -> b.getRoom().getId()));
+
+        return roomRepository.findAll().stream()
+                .filter(r -> r.getStatus() == RoomStatus.ACTIVE)
+                .map(room -> {
+                    List<Booking> sorted = byRoom.getOrDefault(room.getId(), List.of()).stream()
+                            .sorted(Comparator.comparing(Booking::getStartTime)).toList();
+                    Booking current = sorted.stream()
+                            .filter(b -> !b.getStartTime().isAfter(now) && b.getEndTime().isAfter(now))
+                            .findFirst().orElse(null);
+                    Booking next = sorted.stream().filter(b -> b.getStartTime().isAfter(now)).findFirst().orElse(null);
+                    return SignageRoomStatusDto.of(room, current, next);
+                })
+                .sorted(Comparator.comparing(SignageRoomStatusDto::roomCode))
+                .toList();
+    }
+
     public List<RoomSuggestionDto> suggestRooms(Long id) {
         Booking booking = getEntity(id);
         int neededCapacity = booking.getExpectedAttendees() != null ? booking.getExpectedAttendees() : 0;
@@ -317,15 +430,6 @@ public class BookingService {
             throw new ApiException(HttpStatus.BAD_REQUEST,
                     "Đơn đã ở trạng thái " + booking.getStatus() + ", không thể duyệt/từ chối lại");
         }
-    }
-
-    private void checkConflict(Long roomId, Instant startTime, Instant endTime) {
-        boolean hasConflict = !bookingRepository.findApprovedOverlapping(roomId, startTime, endTime).isEmpty();
-        if (hasConflict && "BLOCK".equals(configService.getString("booking.on_conflict", "BLOCK"))) {
-            throw new ConflictException("Phòng đã có đơn được duyệt trong khung giờ này. Vui lòng chọn thời gian hoặc phòng khác.");
-        }
-        // on_conflict=WAITLIST: submission is still accepted (spec: real waitlist queueing
-        // with auto-notify-when-free is listed as a later-phase enhancement, not P1).
     }
 
     private String generateUniqueCode() {

@@ -9,12 +9,15 @@ import ConfigPage from "./pages/admin/ConfigPage";
 import UsersPage from "./pages/admin/UsersPage";
 import ReportsPage from "./pages/admin/ReportsPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
+import WaitlistPage from "./pages/admin/WaitlistPage";
 import LandingPage from "./pages/public/LandingPage";
 import RoomsPublicPage from "./pages/public/RoomsPublicPage";
 import RoomDetailPublicPage from "./pages/public/RoomDetailPublicPage";
 import BookingFormPage from "./pages/public/BookingFormPage";
 import BookingLookupPage from "./pages/public/BookingLookupPage";
 import CalendarPublicPage from "./pages/public/CalendarPublicPage";
+import HandoverConfirmPage from "./pages/public/HandoverConfirmPage";
+import SignagePage from "./pages/public/SignagePage";
 import AdminLayout from "./layouts/AdminLayout";
 import PublicLayout from "./layouts/PublicLayout";
 import RequireAuth from "./components/RequireAuth";
@@ -33,6 +36,11 @@ export default function App() {
           <Route path="/calendar" element={<CalendarPublicPage />} />
         </Route>
 
+        {/* No PublicLayout chrome on these two — a QR-scan confirm page and a TV
+            signage screen are both meant to stand alone, not show the site nav. */}
+        <Route path="/xac-nhan-phieu/:slipId" element={<HandoverConfirmPage />} />
+        <Route path="/man-hinh" element={<SignagePage />} />
+
         <Route path="/admin/login" element={<LoginPage />} />
         <Route
           path="/admin"
@@ -49,6 +57,7 @@ export default function App() {
           <Route path="bookings/:bookingId" element={<BookingDetailPage />} />
           <Route path="calendar" element={<CalendarAdminPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="waitlist" element={<WaitlistPage />} />
           <Route
             path="config"
             element={

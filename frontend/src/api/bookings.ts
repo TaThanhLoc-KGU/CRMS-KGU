@@ -1,5 +1,6 @@
 import { apiClient } from "./client";
 import type { PageResponse } from "./rooms";
+import type { WaitlistEntry } from "./waitlist";
 
 export type BookingStatus =
   | "SUBMITTED"
@@ -32,6 +33,8 @@ export interface BookingSubmitData {
   extraRequirements?: string;
   equipmentItems?: BookingEquipmentItem[];
   agreeToTerms: boolean;
+  /** Recurring bookings: number of weekly occurrences (1 or undefined = one-off). */
+  repeatWeeks?: number;
 }
 
 export interface BookingAttachment {
@@ -80,9 +83,27 @@ export interface Booking {
   decidedAt?: string | null;
   cancelReason?: string | null;
   source: "PUBLIC" | "INTERNAL";
+  recurrenceGroup?: string | null;
   attachments: BookingAttachment[];
   equipments: BookingEquipmentDto[];
   approvals: ApprovalDto[];
+}
+
+export interface OccurrenceResult {
+  startTime: string;
+  endTime: string;
+  outcome: "CREATED" | "WAITLISTED" | "REJECTED";
+  booking?: Booking | null;
+  waitlistEntry?: WaitlistEntry | null;
+  reason?: string | null;
+}
+
+export interface BookingSubmitResult {
+  recurring: boolean;
+  waitlisted: boolean;
+  booking?: Booking | null;
+  waitlistEntry?: WaitlistEntry | null;
+  occurrences?: OccurrenceResult[] | null;
 }
 
 export interface BookingSummary {
@@ -127,12 +148,12 @@ export interface RoomSuggestion {
   floor?: number | null;
 }
 
-export async function submitBooking(data: BookingSubmitData, files: File[]): Promise<Booking> {
+export async function submitBooking(data: BookingSubmitData, files: File[]): Promise<BookingSubmitResult> {
   const formData = new FormData();
   formData.append("data", new Blob([JSON.stringify(data)], { type: "application/json" }));
   files.forEach((file) => formData.append("files", file));
-  const { data: booking } = await apiClient.post<Booking>("/public/bookings", formData);
-  return booking;
+  const { data: result } = await apiClient.post<BookingSubmitResult>("/public/bookings", formData);
+  return result;
 }
 
 export async function lookupBooking(code: string, email: string): Promise<BookingPublicStatus> {
@@ -220,5 +241,20 @@ export async function downloadAttachment(bookingId: number, attachmentId: number
 
 export async function getInternalCalendar(from: string, to: string, roomId?: number): Promise<CalendarEvent[]> {
   const { data } = await apiClient.get<CalendarEvent[]>("/calendar", { params: { from, to, roomId } });
+  return data;
+}
+
+export interface SignageRoomStatus {
+  roomId: number;
+  roomCode: string;
+  roomName: string;
+  floor?: number | null;
+  occupied: boolean;
+  occupiedUntil?: string | null;
+  nextStart?: string | null;
+}
+
+export async function getSignage(): Promise<SignageRoomStatus[]> {
+  const { data } = await apiClient.get<SignageRoomStatus[]>("/public/signage");
   return data;
 }

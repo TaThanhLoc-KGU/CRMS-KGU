@@ -47,7 +47,7 @@ public class HandoverSlipPdfService {
         }
     }
 
-    public byte[] generate(HandoverSlip slip) {
+    public byte[] generate(HandoverSlip slip, String confirmUrl) {
         Font titleFont = new Font(baseFont, 16, Font.BOLD);
         Font normalFont = new Font(baseFont, 11);
         Font smallFont = new Font(baseFont, 9);
@@ -112,10 +112,20 @@ public class HandoverSlipPdfService {
 
             document.add(new Paragraph(" "));
 
-            byte[] qrBytes = qrCodeGenerator.generatePng(slip.getSlipNo(), 140);
+            byte[] qrBytes = qrCodeGenerator.generatePng(confirmUrl, 140);
             Image qrImage = Image.getInstance(qrBytes);
             qrImage.setAlignment(Element.ALIGN_RIGHT);
             document.add(qrImage);
+
+            Paragraph qrCaption = new Paragraph(
+                    slip.getConfirmedAt() != null
+                            ? "Đã xác nhận lúc " + TIME_FORMAT.format(slip.getConfirmedAt())
+                            : (slip.getType() == HandoverType.BORROW
+                                    ? "Quét mã để xác nhận đã nhận phòng"
+                                    : "Quét mã để xác nhận đã trả phòng"),
+                    smallFont);
+            qrCaption.setAlignment(Element.ALIGN_RIGHT);
+            document.add(qrCaption);
 
             document.add(new Paragraph(" "));
             document.add(new Paragraph(" "));

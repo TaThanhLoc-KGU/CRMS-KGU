@@ -5,10 +5,12 @@ sử dụng trang quản trị của hệ thống Quản lý Phòng, Trung tâm 
 Kiên Giang. Không cần biết lập trình để đọc tài liệu này.
 
 > **Phạm vi hiện tại:** hệ thống đã có đầy đủ *quản lý phòng/tài sản*, *cổng công khai
-> đăng ký mượn phòng*, *duyệt/từ chối đơn (kể cả duyệt nhiều cấp)*, *lịch phòng*,
-> *email tự động*, *cấu hình*, *quản lý người dùng*, *phiếu mượn/trả in PDF kèm mã QR*,
-> *báo cáo thống kê* và *nhật ký kiểm toán*. Các tính năng nâng cao (quét QR tự động,
-> Zalo, đăng nhập một lần qua tài khoản trường...) chưa có — xem mục "Sắp có" ở cuối.
+> đăng ký mượn phòng (kể cả đăng ký lặp lại hàng tuần)*, *duyệt/từ chối đơn (kể cả duyệt
+> nhiều cấp)*, *danh sách chờ khi phòng bận*, *lịch phòng*, *email tự động*, *cấu hình*,
+> *quản lý người dùng*, *phiếu mượn/trả in PDF kèm mã QR quét để check-in/check-out
+> thật*, *màn hình hiển thị trạng thái phòng công khai*, *báo cáo thống kê* và *nhật ký
+> kiểm toán*. Các tính năng cần hạ tầng ngoài (Zalo, đăng nhập một lần qua tài khoản
+> trường...) chưa có — xem mục "Sắp có" ở cuối.
 
 ---
 
@@ -128,9 +130,17 @@ họ vào thẳng trang chủ hệ thống (cùng địa chỉ, không có `/adm
 - Hệ thống tự kiểm tra: phải đăng ký trước tối thiểu 48 giờ (chỉnh được ở mục Cấu
   hình), phải trong giờ làm việc, không trùng lịch với đơn đã duyệt khác. Sai điều
   kiện nào thì báo lỗi ngay, không cho gửi.
-- Gửi thành công → hệ thống cấp **mã đơn** (VD `CRMS-2026-000123`) và gửi email xác
-  nhận. Đơn vị dùng mã này + email đã đăng ký để **tự tra cứu trạng thái** ở trang
-  "Tra cứu đơn", không cần gọi điện hỏi.
+- **Đăng ký lặp lại hàng tuần**: tick ô "Lặp lại hàng tuần" (VD sinh hoạt CLB, họp giao
+  ban định kỳ) và chọn số tuần lặp — hệ thống tạo một đơn riêng cho mỗi tuần, kiểm tra
+  độc lập từng tuần (có tuần bị trùng lịch, có tuần không, đều xử lý bình thường), rồi
+  báo lại kết quả từng lần lặp: **Đã tạo đơn** / **Vào danh sách chờ** / **Không thể
+  đặt**.
+- Nếu khung giờ đã có đơn khác được duyệt và hệ thống đang cấu hình "Xử lý khi trùng
+  lịch" = Danh sách chờ, đơn không bị từ chối thẳng mà **vào danh sách chờ** — xem mục
+  7 bên dưới.
+- Gửi thành công (không trùng lịch) → hệ thống cấp **mã đơn** (VD `CRMS-2026-000123`)
+  và gửi email xác nhận. Đơn vị dùng mã này + email đã đăng ký để **tự tra cứu trạng
+  thái** ở trang "Tra cứu đơn", không cần gọi điện hỏi.
 
 Cán bộ tiếp nhận nên biết luồng này để hướng dẫn khi có đơn vị gọi điện hỏi cách đăng
 ký, hoặc báo mất mã đơn.
@@ -164,12 +174,29 @@ chính thức chuyển sang "Đã duyệt" — trước đó đơn ở trạng t
 duyệt tiếp theo vẫn thấy nút Duyệt/Từ chối bình thường. Mục "Lịch sử duyệt" trong trang
 chi tiết đơn liệt kê đầy đủ ai đã duyệt ở cấp nào, lúc nào.
 
-## 7. Lập phiếu mượn/trả phòng
+## 7. Danh sách chờ khi phòng bận
+
+Khi cấu hình "Xử lý khi trùng lịch" (mục Cấu hình) đang đặt là **Danh sách chờ**, một
+đơn đăng ký công khai trùng giờ với đơn đã duyệt sẽ **không tạo ra một đơn cạnh tranh**
+mà vào thẳng danh sách chờ.
+
+1. Vào mục **Danh sách chờ** ở menu bên trái để xem toàn bộ các yêu cầu đang chờ, lọc
+   được theo trạng thái: **Đang chờ**, **Đã báo trống**, **Đã hủy**.
+2. Khi đơn đang chiếm chỗ (đơn đã duyệt trùng khung giờ) bị **hủy**, hệ thống **tự động
+   gửi email** cho tất cả yêu cầu đang chờ trùng khung giờ đó, mời họ đăng ký lại — hệ
+   thống **không tự đặt phòng thay** họ, vì thông tin họ nhập lúc chờ (số người, mục
+   đích...) có thể đã thay đổi.
+3. Có thể bấm **Hủy** một mục đang chờ nếu đơn vị đã gọi điện báo không cần nữa.
+
+> Đây là hàng chờ theo dõi thủ công, không phải một đơn thật — đơn vị vẫn phải quay lại
+> cổng công khai đăng ký lại từ đầu sau khi nhận được email báo trống.
+
+## 8. Lập phiếu mượn/trả phòng
 
 Sau khi đơn đã **Đã duyệt**, vào trang chi tiết đơn để lập phiếu — mục **Phiếu
 mượn/trả** nằm ngay dưới danh sách văn bản đính kèm.
 
-### 7.1. Lập phiếu mượn (khi bàn giao phòng)
+### 8.1. Lập phiếu mượn (khi bàn giao phòng)
 
 1. Bấm **Lập phiếu mượn**, điền tên người mượn thực tế đến nhận phòng (có thể khác
    người đăng ký ban đầu), đơn vị, số điện thoại, ghi chú nếu cần.
@@ -180,7 +207,7 @@ mượn/trả** nằm ngay dưới danh sách văn bản đính kèm.
    ký trực tiếp khi bàn giao.
 4. Đơn tự chuyển sang trạng thái "Đã lập phiếu".
 
-### 7.2. Lập phiếu trả (khi nhận lại phòng)
+### 8.2. Lập phiếu trả (khi nhận lại phòng)
 
 1. Khi đơn vị trả phòng, vào lại trang chi tiết đơn, bấm **Lập phiếu trả**.
 2. Hệ thống tự sao chép đúng danh sách CSVC từ phiếu mượn để đối chiếu — không phải
@@ -190,13 +217,30 @@ mượn/trả** nằm ngay dưới danh sách văn bản đính kèm.
 4. Bấm **Xem/in PDF** để in phiếu trả có đầy đủ đối chiếu trước–sau.
 5. Đơn chuyển sang trạng thái "Đã trả phòng".
 
-### 7.3. Nghiệm thu, hoàn tất đơn
+### 8.3. Nghiệm thu, hoàn tất đơn
 
 Sau khi đã ghi nhận tình trạng trả phòng, bấm **Nghiệm thu, hoàn tất đơn** (ở khung
 Thao tác) để đóng đơn hẳn. Đơn chuyển sang "Đã hoàn tất" — đây là bước cuối cùng trong
 vòng đời một đơn mượn phòng.
 
-## 8. Báo cáo, thống kê & xuất Excel
+### 8.4. Xác nhận nhận/trả phòng bằng cách quét mã QR trên phiếu
+
+Mã QR in trên phiếu mượn/trả **không chỉ để tra cứu** — quét bằng camera điện thoại bất
+kỳ (không cần cài app, không cần đăng nhập) sẽ mở một trang xác nhận và **tự động cập
+nhật trạng thái đơn thật sự**:
+
+- **Quét QR trên phiếu mượn**: xác nhận phòng đã thực sự được bàn giao — đơn chuyển
+  sang trạng thái "Đang sử dụng". Nên để người trực tiếp nhận phòng quét ngay lúc bàn
+  giao, thay vì chỉ ký giấy.
+- **Quét QR trên phiếu trả**: ghi nhận thời điểm trả phòng thực tế (đơn đã chuyển "Đã
+  trả phòng" ngay từ lúc lập phiếu, việc quét QR ở đây là bằng chứng đã có mặt tại chỗ
+  đúng lúc trả, phục vụ đối chiếu khi cần).
+- Quét lại lần hai không gây lỗi gì — trang chỉ báo "Đã xác nhận lúc ..." kèm thời điểm
+  đã xác nhận trước đó.
+- Nếu cần gửi lại đường dẫn xác nhận (VD lỡ hỏng mã QR in), vào trang chi tiết đơn, mục
+  Phiếu mượn/trả, bấm **Sao chép link xác nhận** để lấy đúng đường dẫn tương đương.
+
+## 9. Báo cáo, thống kê & xuất Excel
 
 Vào mục **Báo cáo** ở menu bên trái (xem được bởi mọi vai trò đăng nhập).
 
@@ -211,7 +255,21 @@ Vào mục **Báo cáo** ở menu bên trái (xem được bởi mọi vai trò 
 Ngoài ra, ở trang **Quản lý tài sản** của từng phòng cũng có thể xuất riêng danh sách
 kiểm kê CSVC của phòng đó ra Excel.
 
-## 9. Cấu hình hệ thống (chỉ dành cho Quản trị viên)
+## 10. Màn hình hiển thị trạng thái phòng (dùng cho TV/màn hình treo ngoài cửa)
+
+Địa chỉ `/man-hinh` (VD `http://<địa-chỉ-máy-chủ>:8092/man-hinh`) là một trang **công
+khai, không cần đăng nhập**, hiển thị toàn màn hình, chữ lớn, nền tối, tự làm mới mỗi
+30 giây — thiết kế để mở trên một TV/màn hình đặt ở sảnh hoặc ngoài cửa từng phòng.
+
+- Mỗi phòng hiện một ô: **TRỐNG** (nền xanh) hoặc **ĐANG HỌP** (nền đỏ), kèm giờ kết
+  thúc cuộc họp hiện tại hoặc giờ bắt đầu cuộc họp tiếp theo trong 24 giờ tới.
+- Không hiện tên đơn vị/người liên hệ — giống nguyên tắc của lịch công khai, chỉ cho
+  biết phòng bận hay trống.
+- Để dùng thật, cần một màn hình/TV thật gắn máy tính nhỏ (hoặc TV có trình duyệt sẵn)
+  mở trang này ở chế độ toàn màn hình (kiosk) — phần cứng và lắp đặt không thuộc phạm
+  vi phần mềm này, xem `CLAUDE.md` mục "Việc chưa làm".
+
+## 11. Cấu hình hệ thống (chỉ dành cho Quản trị viên)
 
 Vào mục **Cấu hình** ở menu bên trái (chỉ tài khoản ADMIN nhìn thấy mục này). Các
 nhóm cấu hình:
@@ -228,7 +286,7 @@ nhóm cấu hình:
 Sửa xong bấm **Lưu cấu hình** — áp dụng ngay cho các đơn đăng ký mới, không cần khởi
 động lại hệ thống.
 
-## 8. Quản lý người dùng nội bộ (chỉ dành cho Quản trị viên)
+## 12. Quản lý người dùng nội bộ (chỉ dành cho Quản trị viên)
 
 Vào mục **Người dùng** — chỉ ADMIN thấy mục này. Tạo tài khoản mới cho cán bộ:
 
@@ -242,13 +300,13 @@ Vào mục **Người dùng** — chỉ ADMIN thấy mục này. Tạo tài kho�
 3. Bấm biểu tượng **bút chì** để sửa thông tin hoặc khóa tài khoản (tắt "Hoạt động")
    khi cán bộ nghỉ việc — không nên xóa tài khoản để giữ lại lịch sử duyệt đơn.
 
-## 9. Đăng xuất
+## 13. Đăng xuất
 
 Bấm **Đăng xuất** ở góc trên bên phải màn hình. Hệ thống sẽ đưa về lại trang đăng
 nhập. Nếu sau đó cố truy cập thẳng vào một trang quản trị bằng cách dán link, hệ
 thống sẽ tự động yêu cầu đăng nhập lại — dữ liệu không bị lộ cho người chưa đăng nhập.
 
-## 10. Câu hỏi thường gặp
+## 14. Câu hỏi thường gặp
 
 **Tôi bấm Lưu nhưng không thấy gì xảy ra?**
 Kiểm tra các ô có dấu `*` đỏ (bắt buộc) đã điền đủ chưa — hệ thống sẽ gạch chân đỏ ô
@@ -271,11 +329,11 @@ Liên hệ quản trị viên để đổi vai trò nếu công việc của b�
 Thử tải lại trang (F5). Nếu vẫn lỗi, chụp lại màn hình và báo cho quản trị viên kỹ
 thuật kèm thời điểm xảy ra để tra log.
 
-## 11. Sắp có (các bản cập nhật tiếp theo)
+## 15. Sắp có (cần hạ tầng ngoài, chưa làm được trong bản này)
 
-- **Phiếu mượn/trả phòng** in PDF kèm mã QR, đối chiếu tình trạng cơ sở vật chất khi
-  bàn giao và khi trả phòng.
-- **Báo cáo, thống kê** tần suất sử dụng phòng, tỷ lệ duyệt/từ chối theo thời gian.
-- **Duyệt đa cấp thật sự** (hiện chỉ có 1 cấp duyệt).
+- **Thông báo qua Zalo OA** — gửi kết quả duyệt đơn qua Zalo song song với email, cần
+  đăng ký ứng dụng Zalo OA trước.
+- **Đăng nhập một lần (SSO) qua tài khoản trường / Active Directory** — hiện mỗi cán bộ
+  vẫn cần một tài khoản riêng do ADMIN tạo ở mục Người dùng.
 
 Tài liệu này sẽ được cập nhật khi các tính năng trên hoàn thành.

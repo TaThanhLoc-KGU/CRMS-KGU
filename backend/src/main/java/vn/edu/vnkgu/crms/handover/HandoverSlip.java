@@ -70,6 +70,12 @@ public class HandoverSlip {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "confirmed_at")
+    private Instant confirmedAt;
+
+    @Column(name = "confirmed_ip", length = 64)
+    private String confirmedIp;
+
     @OneToMany(mappedBy = "slip", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<HandoverItem> items = new ArrayList<>();
 
@@ -167,6 +173,22 @@ public class HandoverSlip {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getConfirmedAt() {
+        return confirmedAt;
+    }
+
+    public void setConfirmedAt(Instant confirmedAt) {
+        this.confirmedAt = confirmedAt;
+    }
+
+    public String getConfirmedIp() {
+        return confirmedIp;
+    }
+
+    public void setConfirmedIp(String confirmedIp) {
+        this.confirmedIp = confirmedIp;
     }
 
     public List<HandoverItem> getItems() {

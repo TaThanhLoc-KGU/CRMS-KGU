@@ -95,6 +95,9 @@ public class Booking {
     @Column(name = "remind_return_sent_at")
     private Instant remindReturnSentAt;
 
+    @Column(name = "recurrence_group", length = 40)
+    private String recurrenceGroup;
+
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BookingAttachment> attachments = new ArrayList<>();
 
@@ -258,6 +261,14 @@ public class Booking {
 
     public void setRemindReturnSentAt(Instant remindReturnSentAt) {
         this.remindReturnSentAt = remindReturnSentAt;
+    }
+
+    public String getRecurrenceGroup() {
+        return recurrenceGroup;
+    }
+
+    public void setRecurrenceGroup(String recurrenceGroup) {
+        this.recurrenceGroup = recurrenceGroup;
     }
 
     public List<BookingAttachment> getAttachments() {
