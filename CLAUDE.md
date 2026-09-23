@@ -87,21 +87,24 @@ crms-kgu/
 │       │                          # HandoverConfirmTokenService + HandoverConfirmController (QR check-in/out)
 │       ├── report/                # ReportService (thống kê theo phòng/đơn vị, xuất Excel qua POI)
 │       ├── audit/                 # AuditLog, AuditService (gọi thủ công tại từng service, không AOP)
-│       └── waitlist/              # WaitlistEntry, WaitlistService (hàng chờ + tự báo khi trống)
+│       ├── waitlist/              # WaitlistEntry, WaitlistService (hàng chờ + tự báo khi trống)
+│       └── landing/               # LandingSlide (ảnh carousel trang chủ, top-level — không gắn với
+│                                    # phòng nào) + LandingSlideController (admin) + PublicLandingController
 │   └── src/main/resources/
 │       ├── application.yml
 │       ├── fonts/                # DejaVuSans.ttf — nhúng vào PDF để hiện đúng tiếng Việt (OpenPDF
 │       │                          # không có font Unicode sẵn); xem HandoverSlipPdfService
 │       └── db/migration/        # V1__init, V2__seed, V3__email_templates, V4__booking_reminders,
-│                                  # V5__p3_qr_checkin_waitlist_recurrence
+│                                  # V5__p3_qr_checkin_waitlist_recurrence,
+│                                  # V6__landing_content (bảng landing_slides + config group 'landing')
 ├── frontend/
 │   └── src/
 │       ├── theme.ts               # AntD ThemeConfig — hex phải khớp tay với index.css (xem dưới)
-│       ├── index.css              # Design tokens (CSS custom properties) + font-face + .crms-* utility
-│       │                          # classes (plaque/seal/eyebrow) — đọc header comment trong file trước
-│       │                          # khi đổi màu/font, giải thích vì sao chọn "bảng tên phòng / con dấu"
+│       ├── index.css              # Design tokens (CSS custom properties, nền sáng/một màu nhấn) +
+│       │                          # .crms-* utility classes (plaque/chip/eyebrow) — đọc header comment
+│       │                          # trong file trước khi đổi màu/font; xem mục "Giao diện" bên dưới
 │       ├── api/                  # 1 file/domain: rooms, assets, bookings, config, catalog, users,
-│       │                          # emailTemplates, handover, reports, audit, waitlist
+│       │                          # emailTemplates, handover, reports, audit, waitlist, landing
 │       ├── layouts/              # AdminLayout (sau đăng nhập) và PublicLayout (trang công khai) — tách biệt
 │       ├── components/           # HandoverSection.tsx (nhúng vào BookingDetailPage), RoomPlaqueCard.tsx
 │       │                          # (thẻ phòng dùng chung 3 trang public), RequireRole, v.v.
@@ -383,7 +386,18 @@ trên trước — đừng quay lại hướng ornate.
   cao nhìn từ xa, không phải một trang web thường; đừng "đồng bộ hoá" nó về nền trắng.
 - Tôn trọng `prefers-reduced-motion: reduce` (tắt hết animation/transition) — xem cuối
   `index.css`.
-
+- **Nội dung trang chủ công khai không còn hardcode trong frontend.** Carousel ảnh đầu
+  trang (full-bleed, tỷ lệ 16:9 — AntD `Carousel`, xem `.crms-hero-carousel` trong
+  `index.css` để hiểu vì sao cần ép `height: 100%` xuyên suốt chuỗi `.slick-*`, react-
+  slick không tự giãn theo container cha) lấy dữ liệu từ bảng `landing_slides` riêng,
+  quản lý ở trang admin **Nội dung trang chủ** (`LandingContentPage.tsx`, giống hệt
+  cách quản lý ảnh phòng — dán URL, không có upload file). Dòng chữ nhỏ/tiêu đề/mô tả
+  dưới carousel nằm trong `configurations` (group mới `landing`, đọc/ghi qua chính
+  `ConfigPage.tsx` có sẵn — không cần trang riêng). Cả hai gộp lại qua một endpoint công
+  khai duy nhất `GET /api/v1/public/landing`. **Không seed ảnh mẫu nào** — toàn bộ
+  phòng trong `V2__seed.sql` vốn đã không có `thumbnail_url` thật, thêm ảnh stock giả
+  vào đây sẽ trông như nội dung thật của trường trong khi không phải; carousel rỗng thì
+  hiện một ô nền xanh nhạt + icon đơn giản, chờ admin tự thêm ảnh thật.
 ## Việc chưa làm (cố ý — cần hạ tầng ngoài không có ở môi trường dev)
 
 - **Zalo OA, SSO/Active Directory** — chưa có dòng code nào, cần thông tin xác thực bên

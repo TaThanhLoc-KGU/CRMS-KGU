@@ -9,6 +9,7 @@ import {
   BarChartOutlined,
   AuditOutlined,
   ClockCircleOutlined,
+  PictureOutlined,
 } from "@ant-design/icons";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -32,6 +33,7 @@ export default function AdminLayout() {
       ? [
           { key: "users", path: "/admin/users", icon: <TeamOutlined />, label: "Người dùng" },
           { key: "config", path: "/admin/config", icon: <SettingOutlined />, label: "Cấu hình" },
+          { key: "landing-content", path: "/admin/landing-content", icon: <PictureOutlined />, label: "Nội dung trang chủ" },
           { key: "audit", path: "/admin/audit-logs", icon: <AuditOutlined />, label: "Nhật ký" },
         ]
       : []),

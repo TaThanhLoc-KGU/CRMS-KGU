@@ -170,6 +170,17 @@ code,
   }
 }
 
+/* AntD's Carousel (built on react-slick) doesn't stretch slide height to its
+   container by default — each .slick-slide wrapper div needs it forced explicitly
+   for the 16:9 hero carousel's `height: 100%` images to actually fill the frame. */
+.crms-hero-carousel .slick-slider,
+.crms-hero-carousel .slick-list,
+.crms-hero-carousel .slick-track,
+.crms-hero-carousel .slick-slide,
+.crms-hero-carousel .slick-slide > div {
+  height: 100%;
+}
+
 @media (max-width: 900px) {
   .crms-hero-grid {
     grid-template-columns: 1fr !important;

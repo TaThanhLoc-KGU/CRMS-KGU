@@ -282,11 +282,37 @@ nhóm cấu hình:
 | Email | Tên/địa chỉ email gửi đi, có nút **Gửi email thử** để kiểm tra SMTP |
 | Lịch | Có hiện đơn chờ duyệt trên lịch công khai hay không |
 | Thương hiệu | Tên đơn vị, logo hiển thị trên phiếu & email |
+| Trang chủ | Dòng chữ nhỏ, tiêu đề chính và đoạn mô tả hiển thị trên trang chủ công khai |
 
 Sửa xong bấm **Lưu cấu hình** — áp dụng ngay cho các đơn đăng ký mới, không cần khởi
 động lại hệ thống.
 
-## 12. Quản lý người dùng nội bộ (chỉ dành cho Quản trị viên)
+## 12. Nội dung trang chủ (chỉ dành cho Quản trị viên)
+
+Trang chủ công khai (nơi các đơn vị vào đăng ký mượn phòng) có một **carousel ảnh**
+chạy full màn hình ngay đầu trang — ảnh này không cố định trong code, quản trị viên tự
+thêm/sửa/xóa được, không cần biết lập trình.
+
+1. Vào mục **Nội dung trang chủ** ở menu bên trái (chỉ ADMIN nhìn thấy mục này).
+2. Bấm **Thêm ảnh**, dán **URL ảnh** đã tải lên sẵn ở một nơi lưu trữ ảnh công khai
+   nào đó (VD Google Drive để chế độ công khai, một dịch vụ lưu ảnh, hoặc website của
+   trường) — hệ thống hiện chưa hỗ trợ tải ảnh trực tiếp lên từ máy tính, chỉ nhận
+   đường dẫn URL, giống hệt cách thêm ảnh cho từng phòng.
+3. **Nên chọn ảnh có tỷ lệ khung hình 16:9** (VD 1920×1080) — carousel hiển thị full
+   chiều ngang màn hình và tự tính chiều dọc theo đúng tỷ lệ này, ảnh sai tỷ lệ sẽ bị
+   cắt ở hai cạnh.
+4. Điền **Chú thích** nếu muốn (không bắt buộc, hiện tại chưa hiển thị ra ngoài, chỉ để
+   ghi chú nội bộ), chọn **Thứ tự hiển thị** (số nhỏ hơn hiện trước), bật/tắt **Hiển thị
+   trên trang chủ** rồi bấm **Đồng ý**.
+5. Nhiều ảnh sẽ tự động chạy carousel (chuyển ảnh sau vài giây) theo đúng thứ tự đã
+   chọn. Có thể sửa hoặc xóa từng ảnh bất cứ lúc nào ở bảng danh sách.
+6. Chưa có ảnh nào (hoặc xóa hết) → trang chủ hiện một ô nền xanh nhạt đơn giản thay vì
+   báo lỗi hay hiện ảnh hỏng.
+
+Dòng chữ nhỏ phía trên, tiêu đề chính và đoạn mô tả ngắn hiển thị dưới carousel chỉnh ở
+mục **Cấu hình → Trang chủ** (mục 11), không phải ở đây.
+
+## 13. Quản lý người dùng nội bộ (chỉ dành cho Quản trị viên)
 
 Vào mục **Người dùng** — chỉ ADMIN thấy mục này. Tạo tài khoản mới cho cán bộ:
 
@@ -300,13 +326,13 @@ Vào mục **Người dùng** — chỉ ADMIN thấy mục này. Tạo tài kho�
 3. Bấm biểu tượng **bút chì** để sửa thông tin hoặc khóa tài khoản (tắt "Hoạt động")
    khi cán bộ nghỉ việc — không nên xóa tài khoản để giữ lại lịch sử duyệt đơn.
 
-## 13. Đăng xuất
+## 14. Đăng xuất
 
 Bấm **Đăng xuất** ở góc trên bên phải màn hình. Hệ thống sẽ đưa về lại trang đăng
 nhập. Nếu sau đó cố truy cập thẳng vào một trang quản trị bằng cách dán link, hệ
 thống sẽ tự động yêu cầu đăng nhập lại — dữ liệu không bị lộ cho người chưa đăng nhập.
 
-## 14. Câu hỏi thường gặp
+## 15. Câu hỏi thường gặp
 
 **Tôi bấm Lưu nhưng không thấy gì xảy ra?**
 Kiểm tra các ô có dấu `*` đỏ (bắt buộc) đã điền đủ chưa — hệ thống sẽ gạch chân đỏ ô
@@ -329,7 +355,7 @@ Liên hệ quản trị viên để đổi vai trò nếu công việc của b�
 Thử tải lại trang (F5). Nếu vẫn lỗi, chụp lại màn hình và báo cho quản trị viên kỹ
 thuật kèm thời điểm xảy ra để tra log.
 
-## 15. Sắp có (cần hạ tầng ngoài, chưa làm được trong bản này)
+## 16. Sắp có (cần hạ tầng ngoài, chưa làm được trong bản này)
 
 - **Thông báo qua Zalo OA** — gửi kết quả duyệt đơn qua Zalo song song với email, cần
   đăng ký ứng dụng Zalo OA trước.

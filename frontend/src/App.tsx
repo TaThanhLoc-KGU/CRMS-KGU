@@ -10,6 +10,7 @@ import UsersPage from "./pages/admin/UsersPage";
 import ReportsPage from "./pages/admin/ReportsPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
 import WaitlistPage from "./pages/admin/WaitlistPage";
+import LandingContentPage from "./pages/admin/LandingContentPage";
 import LandingPage from "./pages/public/LandingPage";
 import RoomsPublicPage from "./pages/public/RoomsPublicPage";
 import RoomDetailPublicPage from "./pages/public/RoomDetailPublicPage";
@@ -63,6 +64,14 @@ export default function App() {
             element={
               <RequireRole roles={["ADMIN"]}>
                 <ConfigPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="landing-content"
+            element={
+              <RequireRole roles={["ADMIN"]}>
+                <LandingContentPage />
               </RequireRole>
             }
           />

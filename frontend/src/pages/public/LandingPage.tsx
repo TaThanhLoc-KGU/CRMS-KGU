@@ -1,26 +1,51 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Col, Row, Skeleton } from "antd";
-import { ArrowRightOutlined, CalendarOutlined, FileSearchOutlined } from "@ant-design/icons";
+import { Button, Carousel, Col, Row, Skeleton } from "antd";
+import { ArrowRightOutlined, CalendarOutlined, FileSearchOutlined, PictureOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { listPublicRooms } from "../../api/rooms";
 import { getSignage } from "../../api/bookings";
+import { getPublicLanding } from "../../api/landing";
 import RoomPlaqueCard from "../../components/RoomPlaqueCard";
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { data: content } = useQuery({ queryKey: ["landing-content"], queryFn: getPublicLanding });
   const { data, isLoading } = useQuery({ queryKey: ["public-rooms-highlight"], queryFn: () => listPublicRooms({ size: 8 }) });
   const { data: signage } = useQuery({ queryKey: ["landing-signage"], queryFn: getSignage, refetchInterval: 30_000 });
 
+  const slides = content?.slides ?? [];
+
   return (
     <div>
-      {/* ---- Hero: plain text + CTAs on the left, a live "right now" room-
-          status panel on the right — real data, not a decorative graphic. */}
+      {/* Full-bleed, 16:9 hero carousel — content (images, headline, subheadline)
+          is admin-editable: slides at Quản trị > Nội dung trang chủ, text at
+          Quản trị > Cấu hình > Trang chủ. Nothing here is hardcoded copy. */}
+      <div className="crms-hero-carousel" style={{ width: "100%", aspectRatio: "16 / 9", overflow: "hidden", background: "var(--primary-100)" }}>
+        {slides.length > 0 ? (
+          <Carousel autoplay style={{ height: "100%" }}>
+            {slides.map((slide) => (
+              <div key={slide.id} style={{ height: "100%" }}>
+                <img
+                  src={slide.imageUrl}
+                  alt={slide.caption ?? ""}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                />
+              </div>
+            ))}
+          </Carousel>
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <PictureOutlined style={{ fontSize: 40, color: "var(--primary-600)" }} />
+          </div>
+        )}
+      </div>
+
       <section style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
         <div
           style={{
             maxWidth: 1200,
             margin: "0 auto",
-            padding: "88px 32px",
+            padding: "56px 32px",
             display: "grid",
             gridTemplateColumns: "minmax(0, 1fr) 340px",
             gap: 56,
@@ -29,10 +54,10 @@ export default function LandingPage() {
           className="crms-hero-grid"
         >
           <div>
-            <div className="crms-eyebrow" style={{ marginBottom: 18 }}>Trường Đại học Kiên Giang</div>
+            <div className="crms-eyebrow" style={{ marginBottom: 18 }}>{content?.eyebrow}</div>
             <h1
               style={{
-                fontSize: "clamp(34px, 4vw, 52px)",
+                fontSize: "clamp(30px, 3.4vw, 44px)",
                 fontWeight: 700,
                 lineHeight: 1.15,
                 letterSpacing: "-0.02em",
@@ -41,11 +66,10 @@ export default function LandingPage() {
                 maxWidth: 640,
               }}
             >
-              Đặt phòng họp nhanh gọn, không cần gọi điện
+              {content?.headline}
             </h1>
             <p style={{ fontSize: 17, lineHeight: 1.6, color: "var(--slate-500)", maxWidth: 480, margin: "0 0 36px" }}>
-              Xem lịch trống, gửi đơn đăng ký mượn phòng của Trung tâm Hội nghị, và nhận kết quả duyệt qua email —
-              toàn bộ trên một trang.
+              {content?.subheadline}
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <Button type="primary" size="large" icon={<ArrowRightOutlined />} iconPosition="end" onClick={() => navigate("/rooms")}>

@@ -12,6 +12,7 @@ const GROUP_LABEL: Record<string, string> = {
   calendar: "Lịch",
   security: "Bảo mật",
   branding: "Thương hiệu",
+  landing: "Trang chủ",
 };
 
 function renderField(item: ConfigItem) {
@@ -20,6 +21,8 @@ function renderField(item: ConfigItem) {
       return <Switch />;
     case "INT":
       return <InputNumber style={{ width: "100%" }} />;
+    case "TEXT":
+      return <Input.TextArea rows={2} />;
     default:
       return <Input />;
   }
