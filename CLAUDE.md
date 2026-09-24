@@ -22,6 +22,14 @@ CREATED/WAITLISTED/REJECTED theo từng lần), và **màn hình signage** (`/ma
 tự làm mới, không có trong `PublicLayout`). Toàn bộ đã test qua Docker thật + trình
 duyệt thật, không phải suy đoán — xem các mục "Kiểm thử đã làm cho P1/P2/P3" bên dưới.
 
+**Sau P3 (chưa gắn số phase, xem "Giao diện" và "Tạo đơn thủ công & lịch nâng cao" bên
+dưới):** thiết kế lại giao diện 2 lần theo phản hồi người dùng (ornate → tối giản kiểu
+Material), trang chủ công khai chuyển sang nội dung admin-editable (carousel ảnh full-
+bleed 16:9 + text qua `configurations`), **staff tạo đơn thủ công** (`source=INTERNAL`,
+lần đầu tiên cột này được dùng thật kể từ P0), và lịch (cả công khai lẫn nội bộ) có
+thêm view ngày, hover xem nhanh, bấm xem chi tiết (modal cho công khai, điều hướng cho
+nội bộ), và chế độ xem dạng bảng.
+
 Chưa làm (P3 phần còn lại, cần hạ tầng ngoài không có ở môi trường dev): Zalo OA,
 SSO/Active Directory, lắp màn hình signage vật lý ngoài cửa phòng (trang web đã có, chỉ
 thiếu phần cứng/vận hành thực tế). Xem "Lộ trình" trong spec §17 và mục "Việc chưa làm"
@@ -398,6 +406,41 @@ trên trước — đừng quay lại hướng ornate.
   phòng trong `V2__seed.sql` vốn đã không có `thumbnail_url` thật, thêm ảnh stock giả
   vào đây sẽ trông như nội dung thật của trường trong khi không phải; carousel rỗng thì
   hiện một ô nền xanh nhạt + icon đơn giản, chờ admin tự thêm ảnh thật.
+
+## Tạo đơn thủ công & lịch nâng cao
+
+- **`POST /api/v1/bookings` (staff tạo đơn thủ công)** — dùng khi một đơn vị gọi điện
+  hoặc đến trực tiếp thay vì tự đăng ký qua cổng công khai. Cột `bookings.source`
+  (PUBLIC/INTERNAL) có sẵn từ `V1__init.sql` nhưng chưa từng có gì ghi `INTERNAL` cho
+  tới bây giờ. Cài đặt bằng cách tách `BookingService.submit()` thành
+  `submitWithSource(request, files, source)` dùng chung cho cả `submit()` (source=
+  PUBLIC, endpoint công khai) và `createInternal()` (source=INTERNAL, endpoint admin,
+  mở cho MỌI role đã đăng nhập — không riêng ADMIN, vì OFFICER cũng cần dùng).
+  **Quyết định cố ý, không phải thiếu sót:** đơn tạo thủ công KHÔNG tự động duyệt —
+  vẫn vào đúng hàng đợi `SUBMITTED` và cần bấm "Duyệt đơn" như một đơn công khai bình
+  thường (kể cả khi người tạo là ADMIN). Lý do: OFFICER — người đối tượng chính của
+  tính năng này — không bao giờ được phép tự duyệt đơn (RBAC hiện tại), nên nếu để
+  ADMIN tự động duyệt còn OFFICER thì không, hành vi sẽ khác nhau tùy ai bấm nút, rất
+  dễ gây nhầm lẫn. Nếu sau này có người muốn "tạo xong duyệt luôn cho nhanh", đó là một
+  cú click Duyệt riêng ngay sau khi tạo, không phải lý do để đổi lại thiết kế này. Đơn
+  tạo thủ công vẫn chạy qua đúng `SchedulingRulesService` (lead-time, giờ làm việc) và
+  đúng cơ chế chống trùng lịch/waitlist như đơn công khai — không có đường tắt bỏ qua
+  quy tắc nào cả.
+- **Lịch (cả `/calendar` công khai lẫn `/admin/calendar` nội bộ) thêm 3 thứ cùng lúc:**
+  view **ngày** (`timeGridDay`, trước đây chỉ có tháng/tuần/danh sách), **hover xem
+  nhanh** (tooltip nổi tự vẽ bằng `eventMouseEnter`/`eventMouseLeave` của FullCalendar —
+  chú ý type đúng là `EventHoveringArg` cho CẢ HAI callback, không phải hai type
+  `EventMouseEnterArg`/`EventMouseLeaveArg` tưởng tượng, FullCalendar v6 chỉ có một type
+  chung), và **chế độ xem dạng bảng** (AntD `Segmented` chuyển đổi, dùng lại NGUYÊN
+  mảng `events` đã fetch theo range hiện tại của lịch — không gọi API riêng). Lịch công
+  khai trước đây hoàn toàn không bấm được (không `eventClick`); giờ bấm vào mở
+  `Modal` hiện đúng 3 trường đã che (phòng/giờ/trạng thái dạng "Đã đặt"/"Chờ duyệt"),
+  KHÔNG điều hướng đi đâu (không có trang chi tiết công khai, và không nên có). Lịch
+  nội bộ vẫn giữ nguyên hành vi bấm-là-điều-hướng-sang-trang-chi-tiết đã có từ P1,
+  chỉ thêm hover/bảng/view ngày. `CalendarEventDto.from()` (nội bộ) đặt `title =
+  requesterUnit` — đây là lý do tooltip/bảng nội bộ hiện được tên đơn vị mà không cần
+  sửa gì ở backend.
+
 ## Việc chưa làm (cố ý — cần hạ tầng ngoài không có ở môi trường dev)
 
 - **Zalo OA, SSO/Active Directory** — chưa có dòng code nào, cần thông tin xác thực bên
@@ -582,3 +625,32 @@ Booking API ở P0.
 - Test lại toàn bộ qua `docker compose` thật ở cổng 8092 sau khi build lại image (không
   chỉ Vite dev server) — Flyway áp dụng đúng `V5__p3_qr_checkin_waitlist_recurrence.sql`
   khi khởi động (log xác nhận "Successfully applied 1 migration ... now at version v5").
+
+## Kiểm thử đã làm cho "Tạo đơn thủ công & lịch nâng cao" (qua Docker thật + trình duyệt thật)
+
+**Backend (curl, port 8090):**
+- ADMIN gọi `POST /bookings` → tạo đúng đơn `source=INTERNAL`, `status=SUBMITTED`
+  (không tự duyệt), ghi đúng audit log `BOOKING_CREATE_INTERNAL` kèm `entityId`.
+- Đăng nhập bằng tài khoản `officer1` (role OFFICER) thật đã có sẵn trong seed data →
+  gọi `POST /bookings` thành công (201, `source=INTERNAL`) → gọi tiếp
+  `POST /bookings/{id}/approve` bằng CHÍNH tài khoản OFFICER đó → đúng 403, xác nhận
+  OFFICER tạo được đơn nhưng vẫn không tự duyệt được đơn mình vừa tạo.
+- Duyệt một đơn nội bộ cho có phòng/giờ đã bị chiếm, sau đó thử tạo tiếp một đơn nội bộ
+  khác trùng đúng khung giờ đó → đúng 409, xác nhận ràng buộc chống trùng lịch áp dụng
+  cho đơn tạo thủ công y hệt đơn công khai, không có đường tắt.
+
+**Frontend (thao tác thật qua trình duyệt, không phải test giả lập):**
+- Trang `/admin/bookings`: nút "Tạo đơn mới" mới thêm ở góc phải hiện đúng, dẫn đúng
+  tới `/admin/bookings/new`.
+- Điền và nộp toàn bộ form tạo đơn thủ công qua thao tác chuột/bàn phím thật (chọn
+  phòng qua dropdown, gõ ngày/giờ, không phải chỉ set giá trị bằng script) → nhận đúng
+  màn hình "Đã tạo đơn" kèm mã đơn thật → bấm "Xem chi tiết đơn" → điều hướng đúng tới
+  trang chi tiết, thấy đúng nút Duyệt/Từ chối vẫn hiện ra (đúng vì chưa tự duyệt).
+- Lịch nội bộ (`/admin/calendar`): chuyển view tháng thấy đúng dữ liệu thật đã seed;
+  di chuột vào một sự kiện hiện đúng tooltip nổi (tên phòng, tên đơn vị, khung giờ,
+  tag trạng thái); chuyển sang "Bảng" hiện đúng bảng với dữ liệu giống hệt lịch, bấm
+  vào một dòng điều hướng đúng sang trang chi tiết đơn.
+- Lịch công khai (`/calendar`): tooltip khi hover đúng KHÔNG hiện tên đơn vị (chỉ "Đã
+  đặt"/"Chờ duyệt"), đúng nguyên tắc ẩn danh đã có từ P1; bấm vào sự kiện mở đúng modal
+  "Chi tiết lịch" tại chỗ (không điều hướng đi đâu, không có trang riêng lộ thêm dữ
+  liệu); view ngày mới thêm hiển thị đúng trong cả hai lịch.

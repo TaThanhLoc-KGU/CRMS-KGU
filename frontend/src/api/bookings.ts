@@ -156,6 +156,18 @@ export async function submitBooking(data: BookingSubmitData, files: File[]): Pro
   return result;
 }
 
+/** Staff (ADMIN/OFFICER) recording a booking directly — e.g. a phone/walk-in request
+ * — instead of the requester using the public form. Same request shape as
+ * submitBooking, just a different (authenticated) endpoint; see
+ * BookingService#createInternal on the backend for why this doesn't auto-approve. */
+export async function createInternalBooking(data: BookingSubmitData, files: File[]): Promise<BookingSubmitResult> {
+  const formData = new FormData();
+  formData.append("data", new Blob([JSON.stringify(data)], { type: "application/json" }));
+  files.forEach((file) => formData.append("files", file));
+  const { data: result } = await apiClient.post<BookingSubmitResult>("/bookings", formData);
+  return result;
+}
+
 export async function lookupBooking(code: string, email: string): Promise<BookingPublicStatus> {
   const { data } = await apiClient.get<BookingPublicStatus>("/public/bookings/lookup", {
     params: { code, email },

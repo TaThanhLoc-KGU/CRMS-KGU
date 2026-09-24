@@ -121,13 +121,67 @@ public class BookingService {
      */
     @Transactional
     public BookingSubmitResultDto submit(BookingSubmitRequest request, List<MultipartFile> files) {
+        if (!configService.getBoolean("booking.allow_public_submit", true)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Hệ thống tạm ngừng nhận đăng ký công khai");
+        }
+        return submitWithSource(request, files, BookingSource.PUBLIC);
+    }
+
+    /**
+     * Staff (ADMIN/OFFICER) recording a booking directly — e.g. a phone or walk-in
+     * request — instead of the requester using the public form. The `source` column
+     * has distinguished PUBLIC/INTERNAL since the very first migration (V1__init.sql)
+     * but nothing ever actually created an INTERNAL row until now.
+     * <p>
+     * Deliberately reuses {@link #submitWithSource} unchanged: same lead-time/working-
+     * hours rules, same double-booking conflict handling (BLOCK/WAITLIST), same
+     * starting status of SUBMITTED. A staff-created booking does NOT auto-approve —
+     * an ADMIN creating one still has to click "Duyệt" separately, same as any other
+     * booking. This is a deliberate choice, not an oversight: auto-approving would
+     * poke a hole in the multi-level-approval audit trail exactly where it might
+     * matter most (a priority/internal booking), and OFFICER — who this is equally
+     * for — can never approve anything anyway, so two different behaviors depending
+     * on who clicked "create" would be a confusing, inconsistent workflow. The one
+     * thing this explicitly does NOT check is {@code booking.allow_public_submit} —
+     * that switch is about closing the public form, not about staff's own ability to
+     * record something.
+     */
+    @Transactional
+    public BookingSubmitResultDto createInternal(BookingSubmitRequest request, List<MultipartFile> files, User creator) {
+        BookingSubmitResultDto result = submitWithSource(request, files, BookingSource.INTERNAL);
+        auditService.log(creator, "BOOKING_CREATE_INTERNAL", "Booking",
+                result.booking() != null ? result.booking().id() : null,
+                Map.of("roomId", request.roomId(), "recurring", result.recurring()));
+        return result;
+    }
+
+    /**
+     * A plain one-off submission is {@code repeatWeeks == null/1}: room/config are
+     * validated once, then {@link #submitOccurrence} runs exactly once and its
+     * result (created / waitlisted / rejected) is returned as-is.
+     * <p>
+     * A recurring submission ({@code repeatWeeks > 1}, spec §16 item 10) calls
+     * {@link #submitOccurrence} once per weekly repeat, all inside this single
+     * transaction — safe to do because a newly-submitted booking is always
+     * {@code SUBMITTED}, and {@code no_overlap_per_room} only ever fires for
+     * {@code APPROVED} rows (see V1__init.sql), so one occurrence hitting a
+     * business-rule conflict can never poison the DB transaction for the next one.
+     * Each occurrence independently ends up CREATED, WAITLISTED (room busy and
+     * {@code booking.on_conflict=WAITLIST}), or REJECTED (room busy and BLOCK, or a
+     * lead-time/working-hours violation for that particular date) — a recurring
+     * request is not all-or-nothing. Uploaded attachments are only stored against
+     * the first CREATED occurrence, not duplicated across the whole series.
+     * <p>
+     * Shared by both {@link #submit} (source=PUBLIC) and {@link #createInternal}
+     * (source=INTERNAL) — everything about conflict/rule handling is identical
+     * between the two, only who's allowed to call it and the recorded source differ.
+     */
+    private BookingSubmitResultDto submitWithSource(BookingSubmitRequest request, List<MultipartFile> files,
+                                                      BookingSource source) {
         Room room = roomRepository.findById(request.roomId())
                 .orElseThrow(() -> NotFoundException.of("Phòng", request.roomId()));
         if (room.getStatus() != RoomStatus.ACTIVE) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Phòng hiện không nhận đặt (đang bảo trì/ngừng sử dụng)");
-        }
-        if (!configService.getBoolean("booking.allow_public_submit", true)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Hệ thống tạm ngừng nhận đăng ký công khai");
         }
 
         SetupStyle setupStyle = null;
@@ -139,7 +193,7 @@ public class BookingService {
         int repeatWeeks = request.repeatWeeks() != null ? request.repeatWeeks() : 1;
         if (repeatWeeks <= 1) {
             OccurrenceResultDto result = submitOccurrence(request, room, setupStyle,
-                    request.startTime(), request.endTime(), files, null, true);
+                    request.startTime(), request.endTime(), files, null, true, source);
             return switch (result.outcome()) {
                 case "CREATED" -> BookingSubmitResultDto.ofBooking(result.booking());
                 case "WAITLISTED" -> BookingSubmitResultDto.ofWaitlist(result.waitlistEntry());
@@ -154,7 +208,7 @@ public class BookingService {
             Instant occStart = request.startTime().plus(7L * i, ChronoUnit.DAYS);
             Instant occEnd = request.endTime().plus(7L * i, ChronoUnit.DAYS);
             OccurrenceResultDto result = submitOccurrence(request, room, setupStyle, occStart, occEnd,
-                    filesAttached ? null : files, recurrenceGroup, false);
+                    filesAttached ? null : files, recurrenceGroup, false, source);
             if ("CREATED".equals(result.outcome())) {
                 filesAttached = true;
             }
@@ -163,10 +217,11 @@ public class BookingService {
         return BookingSubmitResultDto.ofRecurring(occurrences);
     }
 
-    /** One occurrence of submit() — see the class-level note on {@link #submit}. */
+    /** One occurrence of submitWithSource() — see its class-level note. */
     private OccurrenceResultDto submitOccurrence(BookingSubmitRequest request, Room room, SetupStyle setupStyle,
                                                   Instant startTime, Instant endTime, List<MultipartFile> files,
-                                                  String recurrenceGroup, boolean throwOnRuleViolation) {
+                                                  String recurrenceGroup, boolean throwOnRuleViolation,
+                                                  BookingSource source) {
         try {
             schedulingRulesService.validate(room, startTime, endTime);
         } catch (ApiException ex) {
@@ -202,7 +257,7 @@ public class BookingService {
         booking.setPurpose(request.purpose());
         booking.setExtraRequirements(request.extraRequirements());
         booking.setStatus(BookingStatus.SUBMITTED);
-        booking.setSource(BookingSource.PUBLIC);
+        booking.setSource(source);
         booking.setRecurrenceGroup(recurrenceGroup);
         bookingRepository.save(booking);
 

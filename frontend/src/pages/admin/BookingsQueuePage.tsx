@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Table, Select, Space, Tag, Typography, Input } from "antd";
+import { Table, Select, Space, Tag, Typography, Input, Button } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import { listBookings, type BookingStatus, type BookingSummary } from "../../api/bookings";
 
 const STATUS_OPTIONS: { label: string; value: BookingStatus }[] = [
@@ -40,7 +41,14 @@ export default function BookingsQueuePage() {
 
   return (
     <div>
-      <Typography.Title level={4}>Hàng đợi duyệt đơn</Typography.Title>
+      <Space style={{ marginBottom: 16, width: "100%", justifyContent: "space-between" }}>
+        <Typography.Title level={4} style={{ margin: 0 }}>
+          Hàng đợi duyệt đơn
+        </Typography.Title>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/admin/bookings/new")}>
+          Tạo đơn mới
+        </Button>
+      </Space>
       <Space style={{ marginBottom: 16 }} wrap>
         <Select
           allowClear

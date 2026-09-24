@@ -3,6 +3,7 @@ import LoginPage from "./pages/LoginPage";
 import RoomsPage from "./pages/admin/RoomsPage";
 import RoomDetailPage from "./pages/admin/RoomDetailPage";
 import BookingsQueuePage from "./pages/admin/BookingsQueuePage";
+import BookingCreatePage from "./pages/admin/BookingCreatePage";
 import BookingDetailPage from "./pages/admin/BookingDetailPage";
 import CalendarAdminPage from "./pages/admin/CalendarAdminPage";
 import ConfigPage from "./pages/admin/ConfigPage";
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="rooms" element={<RoomsPage />} />
           <Route path="rooms/:roomId" element={<RoomDetailPage />} />
           <Route path="bookings" element={<BookingsQueuePage />} />
+          <Route path="bookings/new" element={<BookingCreatePage />} />
           <Route path="bookings/:bookingId" element={<BookingDetailPage />} />
           <Route path="calendar" element={<CalendarAdminPage />} />
           <Route path="reports" element={<ReportsPage />} />
