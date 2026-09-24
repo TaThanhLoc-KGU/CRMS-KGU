@@ -59,7 +59,7 @@ export default function BookingLookupPage() {
       )}
 
       {result && (
-        <Descriptions bordered column={1} style={{ marginTop: 24, background: "var(--surface)" }}>
+        <Descriptions bordered column={1} style={{ marginTop: 24 }}>
           <Descriptions.Item label="Mã đơn">{result.code}</Descriptions.Item>
           <Descriptions.Item label="Phòng">{result.roomName}</Descriptions.Item>
           <Descriptions.Item label="Thời gian">

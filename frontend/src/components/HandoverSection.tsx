@@ -91,7 +91,7 @@ export default function HandoverSection({ bookingId, bookingStatus, onChanged }:
       </Space>
 
       {slips?.map((slip) => (
-        <div key={slip.id} style={{ background: "var(--surface)", border: "1px solid #f0f0f0", padding: 12, marginBottom: 12 }}>
+        <div key={slip.id} className="crms-glass" style={{ padding: 12, marginBottom: 12 }}>
           <Space style={{ marginBottom: 8 }}>
             <Tag color={slip.type === "BORROW" ? "blue" : "purple"}>
               {slip.type === "BORROW" ? "Phiếu mượn" : "Phiếu trả"}

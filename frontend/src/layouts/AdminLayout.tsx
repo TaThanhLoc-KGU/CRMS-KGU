@@ -73,8 +73,6 @@ export default function AdminLayout() {
       <Layout>
         <Header
           style={{
-            background: "var(--surface)",
-            borderBottom: "1px solid var(--border)",
             display: "flex",
             alignItems: "center",
             justifyContent: "flex-end",

@@ -360,27 +360,51 @@ npm run dev
 
 ## Giao diện (design system)
 
-Frontend ban đầu (P0-P3) dùng nguyên màu/font mặc định của AntD — người dùng chê "quá
-đơn giản". Thử một hệ nhận diện ornate tên "Bảng tên phòng / con dấu" (navy + đồng +
-serif Fraunces + con dấu xoay nghiêng khi duyệt đơn) — người dùng chê tiếp là "lố lăng".
-**Bản hiện tại (mới nhất) đi theo hướng ngược lại: sạch, hiện đại, tối giản, kiểu
-Material** — nền trắng/xám nhạt, MỘT màu nhấn (xanh lá), không gradient/hoạ tiết/con
-dấu, một font sans duy nhất. Nếu định "làm đẹp thêm" lần nữa, đọc kỹ hai lần thất bại ở
-trên trước — đừng quay lại hướng ornate.
+Ba lần làm lại rồi, đọc kỹ trước khi định "chỉnh lại" lần nữa:
 
+1. P0-P3 dùng nguyên màu/font mặc định của AntD — chê "quá đơn giản".
+2. Thử hệ nhận diện ornate "Bảng tên phòng / con dấu" (navy + đồng + serif Fraunces +
+   con dấu xoay nghiêng khi duyệt đơn) — chê "lố lăng".
+3. Đổi sang sạch/tối giản kiểu Material (nền trắng phẳng, một màu nhấn, không
+   gradient/hoạ tiết) — admin bị chê tiếp là "xấu", và có yêu cầu riêng cho trang công
+   khai theo hướng **"liquid glass"**.
+
+**Bản hiện tại (thứ ba): "Liquid Glass"** — panel kính mờ (frosted) trôi nổi trên một
+nền gradient màu mềm (mesh), áp dụng ĐỒNG NHẤT cho cả admin lẫn công khai (không tách
+hai hệ khác nhau — làm vậy chính nó đã là một kiểu "xấu" khác: không nhất quán). Màu
+nhấn xanh lá (`--primary-*`) là thứ DUY NHẤT giữ nguyên qua cả 3 lần đổi — coi đó là
+mỏ neo, đừng đổi màu này nếu làm lại lần 4.
+
+- **Cơ chế**: nền gradient (`body`, 3 quầng màu radial-gradient xanh lá/xanh dương/tím,
+  pastel, `background-attachment: fixed`) chỉ tồn tại MỘT LẦN, ở tầng `body`. Mọi "bề
+  mặt" — chrome của AntD (header/sider/card/modal/dropdown/table/popover, glass hoá qua
+  danh sách selector `.ant-layout-header, .ant-layout-sider, .ant-card, ...` trong
+  `index.css`) lẫn div tự tay viết (`.crms-glass`) — đều là nền trắng bán trong suốt
+  (`--surface: rgba(255,255,255,0.68)`) cộng `backdrop-filter: blur(28px) saturate(160%)`
+  (biến `--glass-blur`). **`colorBgLayout` trong `theme.ts` PHẢI là `"transparent"`** —
+  nền `Layout` mặc định của AntD là màu đặc, chắn giữa mesh và panel kính thì không gì
+  còn mờ được nữa (bẫy dễ gặp nhất khi chỉnh lại phần này).
+- **"Siêu mờ" nằm ở độ blur, không phải độ trong suốt** — cố tình giữ alpha khá cao
+  (~0.68-0.8, không phải 0.2-0.3 kiểu "cửa sổ nhìn xuyên") để chữ trên nền kính vẫn đọc
+  rõ; bàn/dữ liệu dày đặc (AntD `Descriptions`) cố tình KHÔNG glass hoá — bỏ hẳn
+  `background: var(--surface)` cũ, để nó tự kế thừa màu theme (đã trong suốt vừa phải)
+  thay vì thêm blur, tránh cảnh một bảng ô nhỏ dày đặc bị mờ nhìn rối mắt.
+- **Nút bấm bo tròn hết cỡ (pill, `borderRadius: 999` ở `Button` token trong
+  `theme.ts`)**, card/panel bo 20px (`--radius-md`) — cảm giác "liquid" đến từ hình
+  khối bo tròn nhiều hơn là từ chính hiệu ứng kính.
 - **Token màu/font**: định nghĩa MỘT LẦN ở `frontend/src/index.css` (CSS custom
-  properties: `--ink-*` chữ đậm/tiêu đề — xám gần đen, không phải navy nữa; `--primary-*`
-  xanh lá — màu hành động chính, duy nhất; `--danger-*` đỏ lỗi/từ chối; `--surface`
-  trắng, `--bg` nền trang xám rất nhạt, `--border` viền xám nhạt) và lặp lại bằng tay ở
-  `frontend/src/theme.ts` (AntD `ThemeConfig`, không đọc được CSS var). **Đổi màu ở một
-  chỗ mà quên chỗ kia sẽ lệch theme** — luôn sửa cả hai file cùng lúc.
+  properties: `--ink-*` chữ đậm/tiêu đề; `--primary-*` xanh lá — màu hành động chính,
+  duy nhất; `--danger-*` đỏ lỗi/từ chối; `--surface`/`--surface-strong`/`--glass-*` —
+  xem trên; `--bg` màu nền base phía sau mesh) và lặp lại bằng tay ở
+  `frontend/src/theme.ts` (AntD `ThemeConfig`, không đọc được CSS var, và không thể
+  biểu diễn `backdrop-filter` — phần đó luôn phải nằm ở CSS thuần trong index.css).
+  **Đổi màu ở một chỗ mà quên chỗ kia sẽ lệch theme** — luôn sửa cả hai file cùng lúc.
 - **Font**: chỉ Be Vietnam Pro (font người Việt thiết kế, đủ dấu tiếng Việt) cho toàn bộ
-  chữ — heading chỉ đậm hơn (weight 700), không dùng serif/italic nào nữa. JetBrains
-  Mono giữ lại riêng cho mã đơn/mã phòng (`.crms-mono`, `.crms-plaque-code`). Nạp qua
-  Google Fonts `<link>` trong `index.html`.
-- **`.crms-plaque`** (index.css): thẻ phòng phẳng, nền trắng, viền + bóng đổ nhẹ kiểu
-  Material elevation, KHÔNG còn khối nền tối + chữ khắc lớn — ảnh đại diện trống thì
-  hiện một icon đơn giản trên nền xanh nhạt. Dùng qua component dùng chung
+  chữ — heading chỉ đậm hơn (weight 700), không dùng serif/italic nào. JetBrains Mono
+  giữ lại riêng cho mã đơn/mã phòng (`.crms-mono`, `.crms-plaque-code`). Nạp qua Google
+  Fonts `<link>` trong `index.html`.
+- **`.crms-plaque`** (index.css): thẻ phòng kính mờ — ảnh đại diện trống thì hiện một
+  icon đơn giản trên nền gradient xanh lá nhạt. Dùng qua component dùng chung
   `RoomPlaqueCard.tsx` ở cả 3 trang public (Landing, RoomsPublicPage,
   RoomDetailPublicPage) — sửa 1 nơi, khỏi lặp code.
 - **`.crms-chip`**: badge nhỏ dạng viên thuốc (pill), thay hẳn cho con dấu xoay nghiêng

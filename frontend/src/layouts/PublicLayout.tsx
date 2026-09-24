@@ -25,8 +25,6 @@ export default function PublicLayout() {
           alignItems: "center",
           gap: 32,
           padding: "0 24px",
-          background: "var(--surface)",
-          borderBottom: "1px solid var(--border)",
         }}
       >
         <Link to="/" style={{ whiteSpace: "nowrap", fontWeight: 700, fontSize: 18 }}>

@@ -166,7 +166,7 @@ export default function BookingDetailPage() {
             )}
           </div>
 
-          <Descriptions bordered column={2} size="small" style={{ background: "var(--surface)", marginBottom: 16 }}>
+          <Descriptions bordered column={2} size="small" style={{ marginBottom: 16 }}>
             <Descriptions.Item label="Đơn vị">{booking.requesterUnit}</Descriptions.Item>
             <Descriptions.Item label="Người liên hệ">{booking.contactName}</Descriptions.Item>
             <Descriptions.Item label="Email">{booking.contactEmail}</Descriptions.Item>
@@ -209,7 +209,7 @@ export default function BookingDetailPage() {
             bordered
             dataSource={booking.attachments}
             locale={{ emptyText: "Không có văn bản đính kèm" }}
-            style={{ marginBottom: 16, background: "var(--surface)" }}
+            style={{ marginBottom: 16 }}
             renderItem={(attachment) => (
               <List.Item
                 actions={[
@@ -240,7 +240,7 @@ export default function BookingDetailPage() {
                 size="small"
                 bordered
                 dataSource={booking.approvals}
-                style={{ background: "var(--surface)", marginBottom: 16 }}
+                style={{ marginBottom: 16 }}
                 renderItem={(a) => (
                   <List.Item>
                     <Tag color={a.decision === "APPROVED" ? "green" : "red"}>

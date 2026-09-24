@@ -1,17 +1,27 @@
 /* ==========================================================================
-   CRMS-KGU design system — clean, modern, minimal (Material-influenced).
-   Light surfaces, one accent color, flat cards with soft elevation, a single
-   sans typeface. No dark hero, no decorative ornament, no stamps — see
-   CLAUDE.md "Giao diện" for the earlier ornate pass this replaced and why.
+   CRMS-KGU design system — "Liquid Glass": frosted, translucent panels
+   floating over a soft, colorful backdrop. Third pass at this app's visual
+   identity (see CLAUDE.md "Giao diện" for the ornate pass, then the flat-
+   minimal pass, this replaces) — same single accent green throughout all
+   three, only the surface material has changed each time.
+
+   Mechanics: the colorful mesh lives once, fixed, behind everything (on
+   `body`). Every "surface" — AntD's own chrome (header/sider/card/modal/
+   dropdown/table/popover) plus our own hand-rolled panels — is a translucent
+   white with `backdrop-filter: blur(...)`, so the mesh reads as frosted glass
+   through it rather than a flat color. `colorBgLayout` MUST stay transparent
+   (see theme.ts) or the Layout's own opaque fill sits between the mesh and
+   the glass, and nothing blurs.
    ========================================================================== */
 
 :root {
-  /* Neutral ink scale — text and headings, not a colored background anymore */
+  /* Neutral ink scale — text and headings */
   --ink-900: #14161a;
   --ink-800: #1c1f26;
   --ink-700: #2b2f38;
 
-  /* Primary accent — one color, used for actions and "available" states */
+  /* Primary accent — one color, used for actions and "available" states.
+     Unchanged across all three visual passes — the one stable anchor. */
   --primary-700: #0b7a52;
   --primary-600: #0f9d6e;
   --primary-500: #16b881;
@@ -26,10 +36,17 @@
   --warning-600: #b7791f;
   --warning-100: #fbf0dc;
 
-  /* Neutral surfaces — everything sits on white or near-white now */
-  --surface: #ffffff;
-  --bg: #f6f7f9;
-  --border: #e6e8eb;
+  /* Glass surface — translucent white, opacity kept fairly high (not a
+     see-through window) so body text over it stays readable; "siêu mờ" is
+     expressed through blur radius, not transparency. */
+  --surface: rgba(255, 255, 255, 0.68);
+  --surface-strong: rgba(255, 255, 255, 0.8);
+  --glass-blur: blur(28px) saturate(160%);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-shadow: 0 8px 32px rgba(31, 41, 55, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  --bg: #eef1f5;
+  --border: rgba(255, 255, 255, 0.5);
 
   --slate-700: #384152;
   --slate-500: #667085;
@@ -38,8 +55,8 @@
   --font-body: "Be Vietnam Pro", -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
   --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.08);
   --shadow-2: 0 4px 8px rgba(16, 24, 40, 0.04), 0 12px 24px -8px rgba(16, 24, 40, 0.14);
 }
@@ -55,10 +72,19 @@ body,
   margin: 0;
 }
 
+/* The mesh: soft pastel blobs, fixed to the viewport so it stays put behind
+   glass panels while content scrolls over it. Pastel/low-saturation on
+   purpose — a busy, high-contrast backdrop would show through the blur as
+   visual noise right behind body text. */
 body {
   font-family: var(--font-body);
-  background: var(--bg);
   color: var(--slate-700);
+  background-color: var(--bg);
+  background-image: radial-gradient(1100px 800px at 8% -8%, rgba(15, 157, 110, 0.32), transparent 60%),
+    radial-gradient(1000px 750px at 95% 5%, rgba(56, 132, 255, 0.24), transparent 60%),
+    radial-gradient(1200px 900px at 50% 115%, rgba(167, 139, 250, 0.22), transparent 60%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
 h1,
@@ -77,6 +103,33 @@ code,
 .crms-mono {
   font-family: var(--font-mono);
   font-feature-settings: "tnum";
+}
+
+/* ---- Glass chrome: AntD's own surfaces get the frosted treatment for free.
+   Background color comes from theme.ts tokens (colorBgContainer etc, already
+   translucent) — this only adds the blur, which JS tokens can't express. ---- */
+.ant-layout-header,
+.ant-layout-sider,
+.ant-card,
+.ant-modal-content,
+.ant-select-dropdown,
+.ant-picker-dropdown,
+.ant-dropdown-menu,
+.ant-drawer-content,
+.ant-popover-inner,
+.ant-collapse,
+.ant-table,
+.crms-glass {
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.ant-layout-sider {
+  border-right: 1px solid var(--glass-border) !important;
+}
+
+.ant-layout-header {
+  border-bottom: 1px solid var(--glass-border) !important;
 }
 
 /* ---- Overline label above a heading — plain, small, used sparingly ---- */
@@ -99,25 +152,27 @@ code,
   background: var(--primary-500);
 }
 
-/* ---- Room card: flat, white, soft elevation — no engraved-plate motif ---- */
+/* ---- Room card: a pane of frosted glass over the mesh ---- */
 .crms-plaque {
   background: var(--surface);
-  border: 1px solid var(--border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--glass-shadow);
   overflow: hidden;
   cursor: pointer;
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .crms-plaque:hover {
-  box-shadow: var(--shadow-2);
+  box-shadow: 0 12px 40px rgba(31, 41, 55, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   transform: translateY(-2px);
 }
 
 .crms-plaque-media {
   height: 140px;
-  background: var(--primary-100);
+  background: linear-gradient(160deg, rgba(15, 157, 110, 0.18), rgba(15, 157, 110, 0.06));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,6 +185,15 @@ code,
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--slate-500);
+}
+
+/* ---- Generic glass panel — for hand-rolled cards outside AntD's own
+   components (calendar wrappers, hero panels, login card, ...) ---- */
+.crms-glass {
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius-md);
 }
 
 /* ---- Status chip: small inline pill, used for the approval indicator ---- */

@@ -52,7 +52,7 @@ export default function RoomDetailPublicPage() {
         {room.name}
       </Typography.Title>
 
-      <Descriptions bordered column={2} style={{ marginBottom: 28, background: "var(--surface)" }}>
+      <Descriptions bordered column={2} style={{ marginBottom: 28 }}>
         <Descriptions.Item label="Tòa nhà">{room.building ?? "-"}</Descriptions.Item>
         <Descriptions.Item label="Tầng">{room.floor ?? "-"}</Descriptions.Item>
         <Descriptions.Item label="Sức chứa">{room.capacity ?? "-"} người</Descriptions.Item>

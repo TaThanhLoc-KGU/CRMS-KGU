@@ -40,7 +40,7 @@ export default function LandingPage() {
         )}
       </div>
 
-      <section style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+      <section>
         <div
           style={{
             maxWidth: 1200,
@@ -85,15 +85,7 @@ export default function LandingPage() {
           </div>
 
           {/* Live status card — real data, refetched every 30s like the signage screen */}
-          <div
-            style={{
-              background: "var(--surface)",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--border)",
-              boxShadow: "var(--shadow-2)",
-              padding: "20px 20px 14px",
-            }}
-          >
+          <div className="crms-glass" style={{ padding: "20px 20px 14px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <span className="crms-eyebrow" style={{ marginBottom: 0 }}>Ngay bây giờ</span>
               <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--primary-500)" }} />

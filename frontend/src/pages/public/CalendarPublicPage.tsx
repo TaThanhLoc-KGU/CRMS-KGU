@@ -75,7 +75,7 @@ export default function CalendarPublicPage() {
       </Space>
 
       {viewMode === "calendar" ? (
-        <div style={{ background: "var(--surface)", padding: 16, borderRadius: 8, position: "relative" }}>
+        <div className="crms-glass" style={{ padding: 16, position: "relative" }}>
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, listPlugin]}
             initialView="dayGridMonth"
@@ -96,15 +96,12 @@ export default function CalendarPublicPage() {
           />
           {hover && (
             <div
+              className="crms-glass"
               style={{
                 position: "fixed",
                 left: hover.x + 14,
                 top: hover.y + 14,
                 zIndex: 1000,
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                boxShadow: "var(--shadow-2)",
                 padding: "10px 14px",
                 pointerEvents: "none",
                 maxWidth: 260,

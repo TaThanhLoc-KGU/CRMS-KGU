@@ -55,11 +55,8 @@ export default function LoginPage() {
         </div>
 
         <div
+          className="crms-glass"
           style={{
-            background: "var(--surface)",
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-1)",
             padding: "28px 28px 8px",
           }}
         >
